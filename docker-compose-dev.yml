@@ -1,0 +1,74 @@
+services:
+  server:
+    build:
+      context: ./apps/OpenSignServer
+      dockerfile: DevDockerfile
+    container_name: OpenSignServer-container
+    ports:
+      - "8080:8080"
+    command: npm run watch
+    volumes:
+      - ./apps/OpenSignServer:/usr/src/app:cached
+      - server-node_modules:/usr/src/app/node_modules
+    depends_on:
+      - mongo
+    env_file: .env
+    environment:
+      - SERVER_URL=${HOST_URL:-https://localhost:3001/app}
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-container
+    volumes:
+      - data-volume:/data/db
+    ports:
+      - "27018:27017"
+    networks:
+      - app-network
+
+  client:
+    build:
+      context: ./apps/OpenSign
+      dockerfile: DevDockerfile
+    container_name: OpenSign-container
+    depends_on:
+      - server
+    env_file: .env  
+    ports:
+      - "3000:3000"
+    command: npm run start-dev
+    volumes:
+      - ./apps/OpenSign:/usr/src/app:cached
+      - client-node_modules:/usr/src/app/node_modules
+    networks:
+      - app-network
+  caddy:
+    image: caddy:latest
+    container_name: caddy-container
+    ports:
+      - "3001:3001"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - app-network
+    environment:
+      - HOST_URL=${HOST_URL:-localhost:3001}
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  data-volume:
+  web-root:
+  caddy_data:
+  caddy_config:
+  server-node_modules:
+  client-node_modules:

@@ -5,10 +5,11 @@ import { useTranslation } from "react-i18next";
 function SelectLanguage(props) {
   const { i18n } = useTranslation();
   const languages = [
+    { value: "es", text: "Español" },
     { value: "en", text: "English" },
     { value: "fr", text: "Français" }
   ];
-  const [lang, setLang] = useState(i18next.language || "en");
+  const [lang, setLang] = useState(i18next.language || "es");
   // This function put query that helps to change the language
   const handleChangeLang = (e) => {
     setLang(e.target.value);
