@@ -68,3 +68,5 @@ volumes:
   web-root:
   caddy_data:
   caddy_config:
+  server-node_modules:
+  client-node_modules:
