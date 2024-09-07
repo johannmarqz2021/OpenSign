@@ -11,7 +11,7 @@ import { RWebShare } from "react-web-share";
 import Tour from "reactour";
 import Parse from "parse";
 import {
-  checkIsSubscribedTeam,
+  checkIsSubscribed,
   copytoData,
   fetchUrl,
   replaceMailVaribles
@@ -27,6 +27,7 @@ import BulkSendUi from "../components/BulkSendUi";
 import Loader from "./Loader";
 import Select from "react-select";
 import SubscribeCard from "./SubscribeCard";
+import { validplan } from "../json/plansArr";
 import { serverUrl_fn } from "../constant/appinfo";
 import { useTranslation } from "react-i18next";
 
@@ -73,15 +74,7 @@ const ReportTable = (props) => {
   const extClass = Extand_Class && JSON.parse(Extand_Class);
   const startIndex = (currentPage - 1) * props.docPerPage;
   const { isMoreDocs, setIsNextRecord } = props;
-  // For loop is used to calculate page numbers visible below table
-  // Initialize pageNumbers using useMemo to avoid unnecessary re-creation
-  // const pageNumbers = useMemo(() => {
-  //   const calculatedPageNumbers = [];
-  //   for (let i = 1; i <= Math.ceil(props.List.length / props.docPerPage); i++) {
-  //     calculatedPageNumbers.push(i);
-  //   }
-  //   return calculatedPageNumbers;
-  // }, [props.List, props.docPerPage]);
+
   const getPaginationRange = () => {
     const totalPageNumbers = 7; // Adjust this value to show more/less page numbers
     const pages = [];
@@ -355,10 +348,10 @@ const ReportTable = (props) => {
       handleBulkSend(item);
     } else if (act.action === "sharewith") {
       if (isEnableSubscription) {
-        const getIsSubscribe = await checkIsSubscribedTeam();
-        setIsSubscribe(getIsSubscribe);
+        const subscribe = await checkIsSubscribed();
+        setIsSubscribe(subscribe);
       } else {
-        setIsSubscribe(true);
+        setIsSubscribe({ plan: "teams-yearly", isValid: true });
       }
       if (item?.SharedWith && item?.SharedWith.length > 0) {
         // below code is used to get existing sharewith teams and formated them as per react-select
@@ -369,6 +362,8 @@ const ReportTable = (props) => {
         setSelectedTeam(formatedList);
       }
       setIsShareWith({ [item.objectId]: true });
+    } else if (act.action === "Embed") {
+      handleEmbedFunction(item);
     }
   };
   // Get current list
@@ -396,7 +391,7 @@ const ReportTable = (props) => {
       Templates: "contracts_Template"
     };
     try {
-      const serverUrl = serverUrl_fn()
+      const serverUrl = serverUrl_fn();
       const cls = clsObj[props.ReportName] || "contracts_Document";
       const url = serverUrl + `/classes/${cls}/`;
       const body =
@@ -448,7 +443,6 @@ const ReportTable = (props) => {
     }
     setReason("");
   };
-
   const handleShare = (item) => {
     setActLoader({ [item.objectId]: true });
     const host = window.location.origin;
@@ -479,9 +473,21 @@ const ReportTable = (props) => {
   };
   //function to handle revoke/decline docment
   const handleRevoke = async (item) => {
+    const senderUser = localStorage.getItem(
+      `Parse/${localStorage.getItem("parseAppId")}/currentUser`
+    );
+    const jsonSender = JSON.parse(senderUser);
     setIsRevoke({});
     setActLoader({ [`${item.objectId}`]: true });
-    const data = { IsDeclined: true, DeclineReason: reason };
+    const data = {
+      IsDeclined: true,
+      DeclineReason: reason,
+      DeclineBy: {
+        __type: "Pointer",
+        className: "_User",
+        objectId: jsonSender?.objectId
+      }
+    };
     await axios
       .put(
         `${localStorage.getItem("baseUrl")}classes/contracts_Document/${
@@ -790,13 +796,13 @@ const ReportTable = (props) => {
       if (count > 1) {
         setAlertMsg({
           type: "success",
-          message: count + t("document-sent-alert")
+          message: count + " " + t("document-sent-alert")
         });
         setTimeout(() => setIsAlert(false), 1500);
       } else {
         setAlertMsg({
           type: "success",
-          message: count + t("document-sent-alert")
+          message: count + " " + t("document-sent-alert")
         });
         setTimeout(() => setIsAlert(false), 1500);
       }
@@ -838,14 +844,10 @@ const ReportTable = (props) => {
       console.log("err in fetch template in bulk modal", err);
       setIsBulkSend({});
       setIsAlert(true);
-      setAlertMsg({
-        type: "danger",
-        message: t("something-went-wrong-mssg")
-      });
+      setAlertMsg({ type: "danger", message: t("something-went-wrong-mssg") });
       setTimeout(() => setIsAlert(false), 1500);
     }
   };
-
   //function to make template public and set public role
   const handlePublicTemplate = async (item) => {
     if (selectedPublicRole || !props.isPublic[item.objectId]) {
@@ -1005,9 +1007,26 @@ const ReportTable = (props) => {
       type: "success",
       message: t("copied")
     });
-    setTimeout(() => setIsAlert(false), 1500);
+    setCopied({ ...copied, publicprofile: true });
+    setTimeout(() => {
+      setIsAlert(false);
+      setCopied(false);
+    }, 1500);
   };
 
+  const copyTemplateId = (templateid) => {
+    copytoData(templateid);
+    setIsAlert(true);
+    setAlertMsg({
+      type: "success",
+      message: t("copied")
+    });
+    setCopied({ ...copied, templateid: true });
+    setTimeout(() => {
+      setIsAlert(false);
+      setCopied(false);
+    }, 1500);
+  };
   const handleShowRole = (item) => {
     const getRole = item.Placeholders.find((data) => !data.signerObjId);
     return getRole?.Role;
@@ -1046,7 +1065,13 @@ const ReportTable = (props) => {
       setTimeout(() => setIsAlert(false), 1500);
     }
   };
-
+  const handleEmbedFunction = async (item) => {
+    setIsPublicProfile({
+      [item.objectId]: props.isPublic[item.objectId]
+    });
+    let extendUser = JSON.parse(localStorage.getItem("Extand_Class"));
+    setIsPublicUserName(extendUser[0]?.UserName || "");
+  };
   return (
     <div className="relative">
       {Object.keys(actLoader)?.length > 0 && (
@@ -1221,7 +1246,7 @@ const ReportTable = (props) => {
                           {formatRow(item?.ExtUserPtr)}
                         </td>
                         <td className="px-4 py-2">
-                          {item?.Placeholders ? (
+                          {!item?.IsSignyourself && item?.Placeholders ? (
                             <button
                               onClick={() => handleViewSigners(item)}
                               className="op-link op-link-primary"
@@ -1317,24 +1342,84 @@ const ReportTable = (props) => {
                                 <ModalUi
                                   isOpen
                                   title={t("public-url")}
-                                  handleClose={() => {
-                                    setIsPublicProfile({});
-                                  }}
+                                  handleClose={() => setIsPublicProfile({})}
                                 >
                                   <div className="m-[20px]">
                                     {publicUserName ? (
                                       <div className="font-normal text-black">
                                         <p>{t("public-url-copy-mssg")}</p>
-                                        <div className=" flex items-center gap-3 mt-2  p-[2px] ">
-                                          <span className="font-bold">
-                                            {t("public-url")}:
-                                          </span>
-                                          <span
-                                            onClick={() => copytoProfileLink()}
-                                            className="underline underline-offset-2 w-[150px] md:w-[350px] whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer"
-                                          >
-                                            {publicUrl()}
-                                          </span>
+                                        <div className=" flex items-center justify-between gap-3 mt-2  p-[2px] ">
+                                          <div className="w-[280px] whitespace-nowrap overflow-hidden text-ellipsis">
+                                            <span className="font-bold">
+                                              {t("public-url")} :
+                                            </span>
+                                            <span
+                                              onClick={() =>
+                                                copytoProfileLink()
+                                              }
+                                              className="ml-[2px] underline underline-offset-2 cursor-pointer"
+                                            >
+                                              {publicUrl()}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <RWebShare
+                                              data={{
+                                                url: publicUrl(),
+                                                title: "Public url"
+                                              }}
+                                            >
+                                              <button className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm ">
+                                                <i className="fa-light fa-share-from-square"></i>{" "}
+                                                <span className="hidden md:inline-block">
+                                                  {t("btnLabel.Share")}
+                                                </span>
+                                              </button>
+                                            </RWebShare>
+                                            <button
+                                              className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm"
+                                              onClick={() =>
+                                                copytoProfileLink()
+                                              }
+                                            >
+                                              <i className="fa-light fa-link"></i>{" "}
+                                              <span className="hidden md:inline-block">
+                                                {copied["publicprofile"]
+                                                  ? t("copied")
+                                                  : t("copy")}
+                                              </span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                        <div className=" flex items-center justify-between gap-3 mt-2  p-[2px] ">
+                                          <div>
+                                            <span className="font-bold">
+                                              {t("templateid")} :
+                                            </span>
+                                            <span
+                                              onClick={() =>
+                                                copyTemplateId(item.objectId)
+                                              }
+                                              className="underline ml-[2px] underline-offset-2 w-[150px] md:w-[350px] whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer"
+                                            >
+                                              {item.objectId}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm"
+                                              onClick={() =>
+                                                copyTemplateId(item.objectId)
+                                              }
+                                            >
+                                              <i className="fa-light fa-link"></i>{" "}
+                                              <span className="hidden md:inline-block">
+                                                {copied["templateid"]
+                                                  ? t("copied")
+                                                  : t("copy")}
+                                              </span>
+                                            </button>
+                                          </div>
                                         </div>
                                       </div>
                                     ) : (
@@ -1383,39 +1468,77 @@ const ReportTable = (props) => {
                                         <i className={act.btnIcon}></i>
                                         {act.btnLabel && (
                                           <span className="uppercase font-medium">
-                                            {t(`btnLabel.${act.btnLabel}`)}
+                                            {act.btnLabel.includes(
+                                              "Quick send"
+                                            ) && isEnableSubscription
+                                              ? "Bulk Send"
+                                              : `${t(
+                                                  `btnLabel.${act.btnLabel}`
+                                                )}`}
                                           </span>
                                         )}
                                         {isOption[item.objectId] &&
                                           act.action === "option" && (
                                             <ul className="absolute -right-1 top-auto z-[70] w-max op-dropdown-content op-menu shadow bg-base-100 text-base-content rounded-box">
-                                              {act.subaction?.map((subact) => (
-                                                <li
-                                                  key={subact.btnId}
-                                                  onClick={() =>
-                                                    handleActionBtn(
-                                                      subact,
-                                                      item
-                                                    )
-                                                  }
-                                                  title={t(
-                                                    `btnLabel.${subact.btnLabel}`
-                                                  )}
-                                                >
-                                                  <span>
-                                                    <i
-                                                      className={`${subact.btnIcon} mr-1.5`}
-                                                    ></i>
-                                                    {subact.btnLabel && (
-                                                      <span className="text-[13px] capitalize font-medium">
-                                                        {t(
-                                                          `btnLabel.${subact.btnLabel}`
+                                              {act.subaction?.map((subact) =>
+                                                props.isPublic[
+                                                  item.objectId
+                                                ] ? (
+                                                  <li
+                                                    key={subact.btnId}
+                                                    onClick={() =>
+                                                      handleActionBtn(
+                                                        subact,
+                                                        item
+                                                      )
+                                                    }
+                                                    title={t(
+                                                      `btnLabel.${subact.btnLabel}`
+                                                    )}
+                                                  >
+                                                    <span>
+                                                      <i
+                                                        className={`${subact.btnIcon} mr-1.5`}
+                                                      ></i>
+                                                      {subact.btnLabel && (
+                                                        <span className="text-[13px] capitalize font-medium">
+                                                          {t(
+                                                            `btnLabel.${subact.btnLabel}`
+                                                          )}
+                                                        </span>
+                                                      )}
+                                                    </span>
+                                                  </li>
+                                                ) : (
+                                                  subact.action !== "Embed" && (
+                                                    <li
+                                                      key={subact.btnId}
+                                                      onClick={() =>
+                                                        handleActionBtn(
+                                                          subact,
+                                                          item
+                                                        )
+                                                      }
+                                                      title={t(
+                                                        `btnLabel.${subact.btnLabel}`
+                                                      )}
+                                                    >
+                                                      <span>
+                                                        <i
+                                                          className={`${subact.btnIcon} mr-1.5`}
+                                                        ></i>
+                                                        {subact.btnLabel && (
+                                                          <span className="text-[13px] capitalize font-medium">
+                                                            {t(
+                                                              `btnLabel.${subact.btnLabel}`
+                                                            )}
+                                                          </span>
                                                         )}
                                                       </span>
-                                                    )}
-                                                  </span>
-                                                </li>
-                                              ))}
+                                                    </li>
+                                                  )
+                                                )
+                                              )}
                                             </ul>
                                           )}
                                       </div>
@@ -1478,114 +1601,117 @@ const ReportTable = (props) => {
                           {isShareWith[item.objectId] && (
                             <div className="op-modal op-modal-open">
                               <div className="max-h-90 bg-base-100 w-[95%] md:max-w-[500px] rounded-box relative">
-                                {isSubscribe && isEnableSubscription && (
-                                  <>
-                                    {item?.Signers?.length > 0 ? (
-                                      <div className="h-[150px] flex justify-center items-center mx-2">
-                                        <div
-                                          className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-base-content absolute right-2 top-2 z-40"
-                                          onClick={() => setIsShareWith({})}
-                                        >
-                                          ✕
+                                {validplan[isSubscribe.plan] &&
+                                  isEnableSubscription && (
+                                    <>
+                                      {item?.Signers?.length > 0 ? (
+                                        <div className="h-[150px] flex justify-center items-center mx-2">
+                                          <div
+                                            className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-base-content absolute right-2 top-2 z-40"
+                                            onClick={() => setIsShareWith({})}
+                                          >
+                                            ✕
+                                          </div>
+                                          <div className="text-base-content text-base text-center">
+                                            {t("share-with-alert")}
+                                          </div>
                                         </div>
-                                        <div className="text-base-content text-base text-center">
-                                          {t("share-with-alert")}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <h3 className="text-base-content font-bold text-lg pt-[15px] px-[20px]">
-                                          {t("share-with")}
-                                        </h3>
-                                        <div
-                                          className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-base-content absolute right-2 top-2 z-40"
-                                          onClick={() => setIsShareWith({})}
-                                        >
-                                          ✕
-                                        </div>
-                                        <form
-                                          className="h-full w-full z-[1300] px-2 mt-3"
-                                          onSubmit={(e) =>
-                                            handleShareWith(e, item)
-                                          }
-                                        >
-                                          <Select
-                                            // onSortEnd={onSortEnd}
-                                            distance={4}
-                                            isMulti
-                                            options={teamList}
-                                            value={selectedTeam}
-                                            onChange={onChange}
-                                            closeMenuOnSelect
-                                            required={true}
-                                            noOptionsMessage={() =>
-                                              t("team-not-found")
+                                      ) : (
+                                        <>
+                                          <h3 className="text-base-content font-bold text-lg pt-[15px] px-[20px]">
+                                            {t("share-with")}
+                                          </h3>
+                                          <div
+                                            className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-base-content absolute right-2 top-2 z-40"
+                                            onClick={() => setIsShareWith({})}
+                                          >
+                                            ✕
+                                          </div>
+                                          <form
+                                            className="h-full w-full z-[1300] px-2 mt-3"
+                                            onSubmit={(e) =>
+                                              handleShareWith(e, item)
                                             }
-                                            unstyled
-                                            classNames={{
-                                              control: () =>
-                                                "op-input op-input-bordered op-input-sm border-gray-400 focus:outline-none hover:border-base-content w-full h-full text-[11px]",
-                                              valueContainer: () =>
-                                                "flex flex-row gap-x-[2px] gap-y-[2px] md:gap-y-0 w-full my-[2px]",
-                                              multiValue: () =>
-                                                "op-badge op-badge-primary h-full text-[11px]",
-                                              multiValueLabel: () => "mb-[2px]",
-                                              menu: () =>
-                                                "mt-1 shadow-md rounded-lg bg-base-200 text-base-content",
-                                              menuList: () =>
-                                                "shadow-md rounded-lg overflow-hidden",
-                                              option: () =>
-                                                "bg-base-200 text-base-content rounded-lg m-1 hover:bg-base-300 p-2",
-                                              noOptionsMessage: () =>
-                                                "p-2 bg-base-200 rounded-lg m-1 p-2"
-                                            }}
-                                          />
-                                          <button className="op-btn op-btn-primary ml-[10px] my-3">
-                                            {t("submit")}
-                                          </button>
-                                        </form>
-                                      </>
-                                    )}
-                                  </>
-                                )}
-                                {!isSubscribe && isEnableSubscription && (
-                                  <>
-                                    <div
-                                      className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-primary-content absolute right-2 top-2 z-40"
-                                      onClick={() => setIsShareWith({})}
-                                    >
-                                      ✕
-                                    </div>
-                                    <SubscribeCard
-                                      plan={"TEAMS"}
-                                      price={"20"}
-                                    />
-                                  </>
-                                )}
-                                {isSubscribe && !isEnableSubscription && (
-                                  <>
-                                    <h3 className="text-base-content font-bold text-lg pt-[15px] px-[20px]">
-                                      {t("share-with")}
-                                    </h3>
-                                    <div
-                                      className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-base-content absolute right-2 top-2 z-40"
-                                      onClick={() => setIsShareWith({})}
-                                    >
-                                      ✕
-                                    </div>
-                                    <div className="px-2 mt-3 w-full h-full">
-                                      <div className="op-input op-input-bordered op-input-sm w-full h-full text-[13px] break-all">
-                                        {selectedTeam?.[0]?.label}
+                                          >
+                                            <Select
+                                              // onSortEnd={onSortEnd}
+                                              distance={4}
+                                              isMulti
+                                              options={teamList}
+                                              value={selectedTeam}
+                                              onChange={onChange}
+                                              closeMenuOnSelect
+                                              required={true}
+                                              noOptionsMessage={() =>
+                                                t("team-not-found")
+                                              }
+                                              unstyled
+                                              classNames={{
+                                                control: () =>
+                                                  "op-input op-input-bordered op-input-sm border-gray-400 focus:outline-none hover:border-base-content w-full h-full text-[11px]",
+                                                valueContainer: () =>
+                                                  "flex flex-row gap-x-[2px] gap-y-[2px] md:gap-y-0 w-full my-[2px]",
+                                                multiValue: () =>
+                                                  "op-badge op-badge-primary h-full text-[11px]",
+                                                multiValueLabel: () =>
+                                                  "mb-[2px]",
+                                                menu: () =>
+                                                  "mt-1 shadow-md rounded-lg bg-base-200 text-base-content",
+                                                menuList: () =>
+                                                  "shadow-md rounded-lg overflow-hidden",
+                                                option: () =>
+                                                  "bg-base-200 text-base-content rounded-lg m-1 hover:bg-base-300 p-2",
+                                                noOptionsMessage: () =>
+                                                  "p-2 bg-base-200 rounded-lg m-1 p-2"
+                                              }}
+                                            />
+                                            <button className="op-btn op-btn-primary ml-[10px] my-3">
+                                              {t("submit")}
+                                            </button>
+                                          </form>
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                {isEnableSubscription &&
+                                  !validplan[isSubscribe.plan] && (
+                                    <>
+                                      <div
+                                        className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-primary-content absolute right-2 top-2 z-40"
+                                        onClick={() => setIsShareWith({})}
+                                      >
+                                        ✕
                                       </div>
-                                    </div>
-                                    <button
-                                      onClick={(e) => handleShareWith(e, item)}
-                                      className="op-btn op-btn-primary ml-[10px] my-3"
-                                    >
-                                      {t("submit")}
-                                    </button>
-                                  </>
-                                )}
+                                      <SubscribeCard plan="TEAMS" />
+                                    </>
+                                  )}
+                                {!isEnableSubscription &&
+                                  validplan[isSubscribe.plan] && (
+                                    <>
+                                      <h3 className="text-base-content font-bold text-lg pt-[15px] px-[20px]">
+                                        {t("share-with")}
+                                      </h3>
+                                      <div
+                                        className="op-btn op-btn-sm op-btn-circle op-btn-ghost text-base-content absolute right-2 top-2 z-40"
+                                        onClick={() => setIsShareWith({})}
+                                      >
+                                        ✕
+                                      </div>
+                                      <div className="px-2 mt-3 w-full h-full">
+                                        <div className="op-input op-input-bordered op-input-sm w-full h-full text-[13px] break-all">
+                                          {selectedTeam?.[0]?.label}
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={(e) =>
+                                          handleShareWith(e, item)
+                                        }
+                                        className="op-btn op-btn-primary ml-[10px] my-3"
+                                      >
+                                        {t("submit")}
+                                      </button>
+                                    </>
+                                  )}
                               </div>
                             </div>
                           )}
@@ -1623,20 +1749,26 @@ const ReportTable = (props) => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {item.Placeholders.map((x, i) => (
-                                    <tr key={i} className="text-sm font-medium">
-                                      {props.ReportName === "Templates" && (
-                                        <td className="text-[12px] p-2 pl-3 w-[30%]">
-                                          {x.Role && x.Role}
-                                        </td>
-                                      )}
-                                      <td className="pl-3 text-[12px] py-2 break-all">
-                                        {x.email
-                                          ? x.email
-                                          : x?.signerPtr?.Email || "-"}
-                                      </td>
-                                    </tr>
-                                  ))}
+                                  {item.Placeholders.map(
+                                    (x, i) =>
+                                      x.Role !== "prefill" && (
+                                        <tr
+                                          key={i}
+                                          className="text-sm font-medium"
+                                        >
+                                          {props.ReportName === "Templates" && (
+                                            <td className="text-[12px] p-2 pl-3 w-[30%]">
+                                              {x.Role && x.Role}
+                                            </td>
+                                          )}
+                                          <td className="pl-3 text-[12px] py-2 break-all">
+                                            {x.email
+                                              ? x.email
+                                              : x?.signerPtr?.Email || "-"}
+                                          </td>
+                                        </tr>
+                                      )
+                                  )}
                                 </tbody>
                               </table>
                             </ModalUi>
@@ -1672,11 +1804,15 @@ const ReportTable = (props) => {
                           {isBulkSend[item.objectId] && (
                             <ModalUi
                               isOpen
-                              title={t("quick-send")}
+                              title={
+                                isEnableSubscription
+                                  ? "Bulk send"
+                                  : t("quick-send")
+                              }
                               handleClose={() => setIsBulkSend({})}
                             >
                               {isLoader[item.objectId] ? (
-                                <div className="w-full h-[100px] flex justify-center items-center bg-opacity-30 z-30">
+                                <div className="w-full h-[100px] flex justify-center items-center z-30">
                                   <Loader />
                                 </div>
                               ) : (

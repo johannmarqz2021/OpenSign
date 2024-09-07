@@ -34,7 +34,12 @@ function Header({
   setIsEmail,
   completeBtnTitle,
   setIsEditTemplate,
-  isPublicTemplate
+  isPublicTemplate,
+  clickOnZoomIn,
+  clickOnZoomOut,
+  handleRotationFun,
+  isDisableRotate,
+  templateId
 }) {
   const { t } = useTranslation();
   const filterPrefill =
@@ -48,7 +53,6 @@ function Header({
     const currentDecline = { currnt: "Sure", isDeclined: true };
     setIsDecline(currentDecline);
   };
-
   return (
     <div className="flex py-[5px]">
       {isMobile && isShowHeader ? (
@@ -73,7 +77,7 @@ function Header({
               allPages={allPages}
               changePage={changePage}
             />
-            {pdfUrl && alreadySign ? (
+            {isCompleted && alreadySign ? (
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <div className="op-link op-link-primary no-underline text-[16px] font-semibold pr-[3px] pl-[5px]">
@@ -184,13 +188,7 @@ function Header({
                     ) : (
                       <div
                         data-tut="reactourThird"
-                        onClick={() => {
-                          if (!pdfUrl) {
-                            embedWidgetsData();
-                          } else if (isPdfRequestFiles) {
-                            embedWidgetsData();
-                          }
-                        }}
+                        onClick={() => embedWidgetsData()}
                         className="border-none font-[650] text-[14px] op-link op-link-primary no-underline"
                       >
                         {t("finish")}
@@ -207,7 +205,7 @@ function Header({
                       </DropdownMenu.Trigger>
                       <DropdownMenu.Portal>
                         <DropdownMenu.Content
-                          className="bg-white shadow-md rounded-full px-3 py-2"
+                          className="bg-white shadow-md rounded-md px-3 py-2"
                           sideOffset={5}
                         >
                           <DropdownMenu.Item
@@ -215,7 +213,7 @@ function Header({
                             onClick={() =>
                               handleDownloadPdf(
                                 pdfDetails,
-                                pdfUrl,
+                                pdfDetails[0]?.URL,
                                 setIsDownloading
                               )
                             }
@@ -226,9 +224,55 @@ function Header({
                             ></i>
                             <span className="font-[500]">{t("download")}</span>
                           </DropdownMenu.Item>
+                          {!isDisableRotate && (
+                            <>
+                              <DropdownMenu.Item
+                                className="flex flex-row justify-center items-center text-[13px] focus:outline-none cursor-pointer"
+                                onClick={() => handleRotationFun(90)}
+                              >
+                                <i className="fa-light fa-rotate-right text-gray-500 2xl:text-[30px] mr-[3px]"></i>
+                                <span className="font-[500]">
+                                  {t("rotate-right")}
+                                </span>
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="flex flex-row justify-center items-center text-[13px] focus:outline-none cursor-pointer"
+                                onClick={() => handleRotationFun(-90)}
+                              >
+                                <i className="fa-light fa-rotate-left text-gray-500 2xl:text-[30px] mr-[3px]"></i>
+                                <span className="font-[500]">
+                                  {t("rotate-left")}
+                                </span>
+                              </DropdownMenu.Item>
+                            </>
+                          )}
+
+                          <DropdownMenu.Item
+                            className="flex flex-row justify-center items-center text-[13px] focus:outline-none cursor-pointer"
+                            onClick={() => clickOnZoomIn()}
+                          >
+                            <i className="fa-light fa-magnifying-glass-plus text-gray-500 2xl:text-[30px]"></i>
+                            <span className="font-[500]">{t("zoom-in")}</span>
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="flex flex-row justify-center items-center text-[13px] focus:outline-none cursor-pointer"
+                            onClick={() => clickOnZoomOut()}
+                          >
+                            <i className="fa-light fa-magnifying-glass-minus text-gray-500 2xl:text-[30px]"></i>
+                            <span className="font-[500]">{t("zoom-out")}</span>
+                          </DropdownMenu.Item>
                         </DropdownMenu.Content>
                       </DropdownMenu.Portal>
                     </DropdownMenu.Root>
+                  </div>
+                )}
+                {isPublicTemplate && (
+                  <div
+                    data-tut="reactourThird"
+                    onClick={() => embedWidgetsData()}
+                    className="border-none font-[650] text-[14px] op-link op-link-primary no-underline"
+                  >
+                    {t("sign-now")}
                   </div>
                 )}
               </div>
@@ -339,15 +383,32 @@ function Header({
               </div>
             ) : (
               <div className="flex" data-tut="reactourFifth">
-                <button
-                  onClick={() => window.history.go(-2)}
-                  type="button"
-                  className="op-btn op-btn-ghost op-btn-sm mr-[3px]"
-                >
-                  {t("back")}
-                </button>
+                {!templateId && (
+                  <button
+                    onClick={() => window.history.go(-2)}
+                    type="button"
+                    className="op-btn op-btn-ghost op-btn-sm mr-[3px]"
+                  >
+                    {t("back")}
+                  </button>
+                )}
                 {currentSigner && (
                   <>
+                    {templateId && (
+                      <button
+                        onClick={() =>
+                          handleDownloadPdf(
+                            pdfDetails,
+                            pdfUrl,
+                            setIsDownloading
+                          )
+                        }
+                        type="button"
+                        className="op-btn op-btn-ghost op-btn-sm mr-[3px]"
+                      >
+                        <span className="hidden lg:block">{t("download")}</span>
+                      </button>
+                    )}
                     <button
                       className="op-btn op-btn-secondary op-btn-sm mr-[3px] shadow"
                       onClick={() => handleDeclinePdfAlert()}
@@ -361,16 +422,22 @@ function Header({
                     >
                       {t("finish")}
                     </button>
-                    <button
-                      type="button"
-                      className="op-btn op-btn-neutral op-btn-sm mr-[3px] shadow"
-                      onClick={() =>
-                        handleDownloadPdf(pdfDetails, pdfUrl, setIsDownloading)
-                      }
-                    >
-                      <i className="fa-light fa-arrow-down font-semibold lg:hidden"></i>
-                      <span className="hidden lg:block">{t("download")}</span>
-                    </button>
+                    {!templateId && (
+                      <button
+                        type="button"
+                        className="op-btn op-btn-neutral op-btn-sm mr-[3px] shadow"
+                        onClick={() =>
+                          handleDownloadPdf(
+                            pdfDetails,
+                            pdfUrl,
+                            setIsDownloading
+                          )
+                        }
+                      >
+                        <i className="fa-light fa-arrow-down font-semibold lg:hidden"></i>
+                        <span className="hidden lg:block">{t("download")}</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -423,9 +490,7 @@ function Header({
               <button
                 type="button"
                 className="op-btn op-btn-primary op-btn-sm  shadow"
-                onClick={() => {
-                  embedWidgetsData();
-                }}
+                onClick={() => embedWidgetsData()}
               >
                 {t("sign-now")}
               </button>
@@ -442,11 +507,7 @@ function Header({
               <button
                 type="button"
                 className="op-btn op-btn-primary op-btn-sm mr-[3px]"
-                onClick={() => {
-                  if (!pdfUrl) {
-                    embedWidgetsData();
-                  }
-                }}
+                onClick={() => embedWidgetsData()}
               >
                 {t("finish")}
               </button>

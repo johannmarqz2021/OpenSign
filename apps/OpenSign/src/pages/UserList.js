@@ -9,8 +9,9 @@ import Tooltip from "../primitives/Tooltip";
 import AddUser from "../components/AddUser";
 import SubscribeCard from "../primitives/SubscribeCard";
 import { isEnableSubscription } from "../constant/const";
-import { checkIsSubscribedTeam } from "../constant/Utils";
+import { checkIsSubscribed } from "../constant/Utils";
 import Title from "../components/Title";
+import { validplan } from "../json/plansArr";
 import { useTranslation } from "react-i18next";
 const heading = ["Sr.No", "Name", "Email", "Phone", "Role", "Team", "Active"];
 // const actions = [];
@@ -26,8 +27,9 @@ const UserList = () => {
   const [isAlert, setIsAlert] = useState({ type: "success", msg: "" });
   const [isActiveModal, setIsActiveModal] = useState({});
   const [isActLoader, setIsActLoader] = useState({});
-  const [isSubscribe, setIsSubscribe] = useState(false);
+  const [isSubscribe, setIsSubscribe] = useState({ plan: "", isValid: false });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [formHeader, setFormHeader] = useState(t("add-user"));
   const recordperPage = 10;
   const startIndex = (currentPage - 1) * recordperPage; // user per page
 
@@ -91,10 +93,10 @@ const UserList = () => {
     try {
       setIsLoader(true);
       if (isEnableSubscription) {
-        const getIsSubscribe = await checkIsSubscribedTeam();
-        setIsSubscribe(getIsSubscribe);
+        const subscribe = await checkIsSubscribed();
+        setIsSubscribe(subscribe);
       } else {
-        setIsSubscribe(true);
+        setIsSubscribe({ plan: "teams-yearly", isValid: true });
       }
       const extUser = JSON.parse(localStorage.getItem("Extand_Class"))?.[0];
       if (extUser) {
@@ -197,15 +199,11 @@ const UserList = () => {
           <Loader />
         </div>
       )}
-      {isSubscribe && !isLoader && (
+      {validplan[isSubscribe.plan] && !isLoader && (
         <>
           {isAdmin ? (
             <div className="p-2 w-full bg-base-100 text-base-content op-card shadow-lg">
-              {isAlert.msg && (
-                <Alert type={isAlert.type}>
-                  <div className="ml-3">{isAlert.msg}</div>
-                </Alert>
-              )}
+              {isAlert.msg && <Alert type={isAlert.type}>{isAlert.msg}</Alert>}
               <div className="flex flex-row items-center justify-between my-2 mx-3 text-[20px] md:text-[23px]">
                 <div className="font-light">
                   {t("report-name.Users")}
@@ -397,14 +395,15 @@ const UserList = () => {
                 </div>
               )}
               <ModalUi
-                title={t("add-user")}
                 isOpen={isModal}
+                title={formHeader}
                 handleClose={handleFormModal}
               >
                 <AddUser
                   setIsAlert={setIsAlert}
                   handleUserData={handleUserData}
                   closePopup={handleFormModal}
+                  setFormHeader={setFormHeader}
                 />
               </ModalUi>
             </div>
@@ -422,9 +421,9 @@ const UserList = () => {
           )}
         </>
       )}
-      {!isSubscribe && isEnableSubscription && !isLoader && (
+      {isEnableSubscription && !validplan[isSubscribe.plan] && !isLoader && (
         <div data-tut="apisubscribe">
-          <SubscribeCard plan={"TEAMS"} price={"20"} />
+          <SubscribeCard plan="TEAMS" />
         </div>
       )}
     </div>

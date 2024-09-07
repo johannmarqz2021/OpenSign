@@ -28,6 +28,7 @@ export default function reportJson(id, userId) {
           'Signers.Email',
           'Signers.Phone',
           'Placeholders',
+          'IsSignyourself',
         ],
       };
 
@@ -137,6 +138,7 @@ export default function reportJson(id, userId) {
           'Signers.Phone',
           'TimeToCompleteDays',
           'Placeholders',
+          'IsSignyourself',
         ],
       };
     //  declined documents report
@@ -241,6 +243,7 @@ export default function reportJson(id, userId) {
         reportName: 'Recent signature requests',
         params: {
           Type: { $ne: 'Folder' },
+          SignedUrl: { $ne: null },
           IsCompleted: { $ne: true },
           IsDeclined: { $ne: true },
           IsArchive: { $ne: true },

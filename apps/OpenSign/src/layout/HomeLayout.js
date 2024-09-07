@@ -95,7 +95,9 @@ const HomeLayout = () => {
       domain: updateDomain
     });
   };
-
+  const handleNavigation = () => {
+    navigate("/subscription");
+  };
   async function checkIsSubscribed() {
     if (isEnableSubscription) {
       const res = await fetchSubscription();
@@ -107,10 +109,10 @@ const HomeLayout = () => {
           setIsUserValid(true);
           setIsLoader(false);
         } else {
-          navigate(`/subscription`);
+          handleNavigation(res.plan);
         }
       } else {
-        navigate(`/subscription`);
+        handleNavigation(res.plan);
       }
     } else {
       setIsUserValid(true);

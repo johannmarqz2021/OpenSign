@@ -21,7 +21,7 @@ const UpdateExistUserAdmin = () => {
     try {
       const isAdminExist = await Parse.Cloud.run("checkadminexist");
       if (isAdminExist !== "not_exist") {
-        console.log("isAdminExist ", isAdminExist);
+        // console.log("isAdminExist ", isAdminExist);
         setErrMsg("Admin already exists.");
       }
     } catch (err) {
@@ -65,12 +65,8 @@ const UpdateExistUserAdmin = () => {
   };
   return (
     <div className="h-screen flex justify-center">
-      <Title title="Add admin" />
-      {isAlert.msg && (
-        <Alert type={isAlert.type}>
-          <div className="ml-3">{isAlert.msg}</div>
-        </Alert>
-      )}
+      <Title title={"Add Admin"} />
+      {isAlert.msg && <Alert type={isAlert.type}>{isAlert.msg}</Alert>}
       {loader ? (
         <div className="text-[grey] flex justify-center items-center text-lg md:text-2xl">
           <Loader />

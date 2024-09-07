@@ -10,7 +10,6 @@ import Tooltip from "../primitives/Tooltip";
 import { isEnableSubscription, isStaging } from "../constant/const";
 import {
   checkIsSubscribed,
-  checkIsSubscribedTeam,
   copytoData,
   handleSendOTP,
   openInNewTab
@@ -18,10 +17,13 @@ import {
 import Upgrade from "../primitives/Upgrade";
 import ModalUi from "../primitives/ModalUi";
 import Loader from "../primitives/Loader";
+import { validplan } from "../json/plansArr";
 import { useTranslation } from "react-i18next";
 import SelectLanguage from "../components/pdf/SelectLanguage";
 import { RWebShare } from "react-web-share";
 import Alert from "../primitives/Alert";
+import Tour from "reactour";
+import TourContentWithBtn from "../primitives/TourContentWithBtn";
 
 function UserProfile() {
   const navigate = useNavigate();
@@ -39,7 +41,7 @@ function UserProfile() {
   const [isDisableDocId, setIsDisableDocId] = useState(false);
   const [isSubscribe, setIsSubscribe] = useState(false);
   const [isUpgrade, setIsUpgrade] = useState(false);
-  const [isAlert, setIsAlert] = useState({});
+  const [isAlert, setIsAlert] = useState({ type: "success", message: "" });
   const [publicUserName, setPublicUserName] = useState(
     extendUser && extendUser?.[0]?.UserName
   );
@@ -57,7 +59,10 @@ function UserProfile() {
   const [tagLine, setTagLine] = useState(
     extendUser && extendUser?.[0]?.Tagline
   );
-  const [isTeam, setIsTeam] = useState(false);
+  const [isPlan, setIsPlan] = useState({ plan: "", isValid: false });
+  const [tourStatus, setTourStatus] = useState([]);
+  const [isProfileTour, setIsProfileTour] = useState(false);
+  const [isDontShow, setIsDontShow] = useState(false);
   const getPublicUrl = isStaging
     ? `https://staging.opensign.me/${extendUser?.[0]?.UserName}`
     : `https://opensign.me/${extendUser?.[0]?.UserName}`;
@@ -65,17 +70,27 @@ function UserProfile() {
     getUserDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   const getUserDetail = async () => {
     setIsLoader(true);
     const extClass = localStorage.getItem("Extand_Class");
     const jsonSender = JSON.parse(extClass);
+    const tourstatuss = jsonSender[0]?.TourStatus && jsonSender[0].TourStatus;
+    if (!isEnableSubscription) {
+      setIsProfileTour(true);
+    } else if (tourstatuss && tourstatuss.length > 0) {
+      setTourStatus(tourstatuss);
+      const checkTourRecipients = tourstatuss.filter(
+        (data) => data.profileTour
+      );
+      if (checkTourRecipients && checkTourRecipients.length > 0) {
+        setIsProfileTour(checkTourRecipients[0]?.profileTour);
+      }
+    }
     const HeaderDocId = jsonSender[0]?.HeaderDocId;
     if (isEnableSubscription) {
-      const getIsSubscribe = await checkIsSubscribed();
-      const getIsTeam = await checkIsSubscribedTeam();
-      setIsSubscribe(getIsSubscribe);
-      setIsTeam(getIsTeam);
+      const subscribe = await checkIsSubscribed();
+      setIsSubscribe(subscribe.isValid);
+      setIsPlan(subscribe);
     }
     if (HeaderDocId) {
       setIsDisableDocId(HeaderDocId);
@@ -109,13 +124,8 @@ function UserProfile() {
       });
       if (res) {
         setIsLoader(false);
-        setIsAlert({
-          type: "danger",
-          message: t("user-name-exist")
-        });
-        setTimeout(() => {
-          setIsAlert({});
-        }, 3000);
+        setIsAlert({ type: "danger", message: t("user-name-exist") });
+        setTimeout(() => setIsAlert({}), 3000);
         return res;
       }
     } catch (e) {
@@ -320,17 +330,80 @@ function UserProfile() {
     setJobTitle(extendUser?.[0]?.JobTitle);
     setIsDisableDocId(extendUser?.[0]?.HeaderDocId);
   };
-  const copytoclipboard = () => {
-    copytoData(getPublicUrl);
-    setIsAlert({
-      type: "success",
-      message: t("copied")
-    });
-    setTimeout(() => {
-      setIsAlert({});
-    }, 3000);
+  const handlePaidRoute = () => {
+    navigate("/subscription");
   };
 
+  const copytoclipboard = () => {
+    copytoData(getPublicUrl);
+    setIsAlert({ type: "success", message: t("copied") });
+    setTimeout(() => setIsAlert({}), 3000);
+  };
+
+  const tourConfig = [
+    {
+      content: () => (
+        <TourContentWithBtn
+          message={t("tour-mssg.public-template")}
+          isChecked={handleDontShow}
+          video="https://www.youtube.com/embed/_wB4UA7Jz5Q?si=I40CI3nVUWQzf42Y"
+        />
+      ),
+      position: "top",
+      style: { fontSize: "13px" }
+    }
+  ];
+  //function for update TourStatus
+  const closeTour = async () => {
+    try {
+      setIsProfileTour(true);
+      if (isDontShow) {
+        let updatedTourStatus = [];
+        if (tourStatus.length > 0) {
+          updatedTourStatus = [...tourStatus];
+          const profileIndex = tourStatus.findIndex(
+            (obj) => obj["profileTour"] === false || obj["profileTour"] === true
+          );
+          if (profileIndex !== -1) {
+            updatedTourStatus[profileIndex] = { profileTour: true };
+          } else {
+            updatedTourStatus.push({ profileTour: true });
+          }
+        } else {
+          updatedTourStatus = [{ profileTour: true }];
+        }
+
+        await axios.put(
+          `${localStorage.getItem("baseUrl")}classes/contracts_Users/${
+            extendUser?.[0]?.objectId
+          }`,
+          {
+            TourStatus: updatedTourStatus
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+              sessionToken: localStorage.getItem("accesstoken")
+            }
+          }
+        );
+        const res = await Parse.Cloud.run("getUserDetails");
+        const json = JSON.parse(JSON.stringify([res]));
+        const extRes = JSON.stringify(json);
+        localStorage.setItem("Extand_Class", extRes);
+      }
+    } catch (err) {
+      console.log("axois err ", err);
+      alert(t("something-went-wrong-mssg"));
+    }
+  };
+  const handleDontShow = (isChecked) => {
+    setIsDontShow(isChecked);
+  };
+  const handleOnlickHelp = () => {
+    setIsProfileTour(false);
+  };
   return (
     <React.Fragment>
       <Title title={"Profile"} />
@@ -340,12 +413,19 @@ function UserProfile() {
         </div>
       ) : (
         <div className="flex justify-center items-center w-full relative">
-          {isAlert && (
+          {isAlert.message && (
             <Alert className="z-[1000] fixed top-[10%]" type={isAlert.type}>
               {isAlert.message}
             </Alert>
           )}
-
+          <Tour
+            className="md:!min-w-[650px]"
+            onRequestClose={closeTour}
+            steps={tourConfig}
+            isOpen={!isProfileTour}
+            rounded={5}
+            closeWithMask={false}
+          />
           <div className="bg-base-100 text-base-content flex flex-col justify-center shadow-md rounded-box w-[450px]">
             <div className="flex flex-col justify-center items-center my-4">
               <div className="w-[200px] h-[200px] overflow-hidden rounded-full">
@@ -387,23 +467,12 @@ function UserProfile() {
                   editmode ? "py-1.5" : "py-2"
                 }`}
               >
-                <span className="font-semibold">{t("language")}:</span>{" "}
-                <SelectLanguage
-                  isProfile={true}
-                  updateExtUser={updateExtUser}
-                />
-              </li>
-              <li
-                className={`flex justify-between items-center border-t-[1px] border-gray-300 break-all ${
-                  editmode ? "py-1.5" : "py-2"
-                }`}
-              >
                 <span className="font-semibold">{t("name")}:</span>{" "}
                 {editmode ? (
                   <input
                     type="text"
                     value={name}
-                    className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content text-sm"
+                    className="op-input op-input-bordered op-input-sm w-[180px] focus:outline-none hover:border-base-content text-sm"
                     onChange={(e) => SetName(e.target.value)}
                   />
                 ) : (
@@ -419,7 +488,7 @@ function UserProfile() {
                 {editmode ? (
                   <input
                     type="text"
-                    className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content text-sm"
+                    className="op-input op-input-bordered op-input-sm w-[180px] focus:outline-none hover:border-base-content text-sm"
                     onChange={(e) => SetPhone(e.target.value)}
                     value={Phone}
                   />
@@ -441,7 +510,7 @@ function UserProfile() {
                   <input
                     type="text"
                     value={company}
-                    className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content text-sm"
+                    className="op-input op-input-bordered op-input-sm w-[180px] focus:outline-none hover:border-base-content text-sm"
                     onChange={(e) => setCompany(e.target.value)}
                   />
                 ) : (
@@ -458,7 +527,7 @@ function UserProfile() {
                   <input
                     type="text"
                     value={jobTitle}
-                    className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content text-sm"
+                    className="op-input op-input-bordered op-input-sm w-[180px] focus:outline-none hover:border-base-content text-sm"
                     onChange={(e) => setJobTitle(e.target.value)}
                   />
                 ) : (
@@ -486,40 +555,30 @@ function UserProfile() {
               </li>
               {isEnableSubscription && (
                 <>
-                  <li className="flex md:flex-row flex-col md:justify-between md:items-center border-t-[1px] border-gray-300 py-2 break-all">
+                  <li className="flex flex-row justify-between md:items-center border-t-[1px] border-gray-300 py-2 break-all">
                     <span className="font-semibold flex gap-1">
                       {t("public-profile")} :{" "}
-                      <Tooltip
-                        maxWidth="max-w-[250px]"
-                        message={t("public-profile-help")}
-                      />
+                      <Tooltip handleOnlickHelp={handleOnlickHelp} />
                     </span>
-                    <div className="flex md:flex-row flex-col md:items-center">
+                    <div className="flex flex-row items-center gap-1">
                       {editmode || !extendUser?.[0]?.UserName ? (
-                        <input
-                          maxLength={40}
-                          style={{
-                            border:
-                              !isSubscribe &&
-                              publicUserName?.length > 0 &&
-                              publicUserName?.length < 9 &&
-                              "solid red"
-                          }}
-                          onChange={handleOnchangeUserName}
-                          value={publicUserName}
-                          disabled={!editmode}
-                          placeholder="enter user name"
-                          className="op-input op-input-bordered focus:outline-none hover:border-base-content op-input-xs"
-                        />
+                        <>
+                          <input
+                            maxLength={40}
+                            onChange={handleOnchangeUserName}
+                            value={publicUserName}
+                            disabled={!editmode}
+                            placeholder="enter user name"
+                            className="op-input op-input-bordered op-input-sm w-[180px] focus:outline-none hover:border-base-content text-sm"
+                          />
+                        </>
                       ) : (
                         <div className="flex flex-row gap-1 items-center justify-between md:justify-start">
                           <span
                             rel="noreferrer"
                             target="_blank"
-                            onClick={() => {
-                              openInNewTab(getPublicUrl);
-                            }}
-                            className="cursor-pointer underline hover:text-blue-800 w-[200px] md:w-[150px] whitespace-nowrap overflow-hidden text-ellipsis"
+                            onClick={() => openInNewTab(getPublicUrl)}
+                            className="cursor-pointer underline hover:text-blue-800 w-[110px] md:w-[150px] whitespace-nowrap overflow-hidden text-ellipsis"
                           >
                             {isStaging
                               ? `staging.opensign.me/${extendUser?.[0]?.UserName}`
@@ -527,10 +586,7 @@ function UserProfile() {
                           </span>
                           <div className="flex items-center gap-2">
                             <RWebShare
-                              data={{
-                                url: getPublicUrl,
-                                title: "Sign url"
-                              }}
+                              data={{ url: getPublicUrl, title: "Sign url" }}
                             >
                               <button className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm ">
                                 <i className="fa-light fa-share-from-square"></i>{" "}
@@ -547,30 +603,23 @@ function UserProfile() {
                       )}
                     </div>
                   </li>
-                  <li className="flex md:flex-row flex-col md:justify-between md:items-center border-t-[1px] border-gray-300 py-2 break-all">
+                  <li className="flex flex-row justify-between items-center border-t-[1px] border-gray-300 py-2 break-all">
                     <span className="font-semibold flex gap-1">
                       {t("tagline")} :{" "}
-                      <Tooltip
-                        maxWidth="max-w-[250px]"
-                        message={t("tagline-help")}
-                      />
+                      <Tooltip handleOnlickHelp={handleOnlickHelp} />
                     </span>
-                    <div className="flex md:flex-row flex-col md:items-center">
-                      {editmode ? (
+                    <div className="flex flex-row md:items-center gap-1">
+                      {editmode || !extendUser?.[0]?.Tagline ? (
                         <input
+                          maxLength={40}
                           onChange={handleOnchangeTagLine}
                           value={tagLine}
                           disabled={!editmode}
                           placeholder="enter tagline"
-                          className="op-input op-input-bordered focus:outline-none hover:border-base-content op-input-xs"
+                          className="op-input op-input-bordered op-input-sm w-[180px] focus:outline-none hover:border-base-content text-sm"
                         />
                       ) : (
-                        <input
-                          value={extendUser?.[0]?.Tagline}
-                          disabled
-                          placeholder="enter tagline"
-                          className="op-input op-input-bordered op-input-xs"
-                        />
+                        <span>{extendUser?.[0]?.Tagline}</span>
                       )}
                     </div>
                   </li>
@@ -581,7 +630,9 @@ function UserProfile() {
                   <div className="flex justify-between items-center py-2">
                     <span
                       className={
-                        isTeam ? "font-semibold" : "font-semibold text-gray-300"
+                        validplan[isPlan.plan]
+                          ? "font-semibold"
+                          : "font-semibold text-gray-300"
                       }
                     >
                       {t("disable-documentId")} :{" "}
@@ -590,17 +641,21 @@ function UserProfile() {
                           "https://docs.opensignlabs.com/docs/help/Settings/disabledocumentid"
                         }
                       />
-                      {!isTeam && isEnableSubscription && <Upgrade />}
+                      {!validplan[isPlan.plan] && isEnableSubscription && (
+                        <Upgrade />
+                      )}
                     </span>
                     <label
                       className={`${
-                        isTeam
+                        validplan[isPlan.plan]
                           ? `${editmode ? "cursor-pointer" : ""}`
                           : "pointer-events-none opacity-50"
                       } relative block items-center mb-0`}
                     >
                       <input
-                        disabled={isTeam ? false : true}
+                        disabled={
+                          validplan[isPlan.plan] && editmode ? false : true
+                        }
                         type="checkbox"
                         className="op-toggle transition-all checked:[--tglbg:#3368ff] checked:bg-white"
                         checked={isDisableDocId}
@@ -610,6 +665,17 @@ function UserProfile() {
                   </div>
                 </li>
               )}
+              <li
+                className={`flex justify-between items-center border-b-[1px] border-gray-300 break-all ${
+                  editmode ? "py-1.5" : "py-2"
+                }`}
+              >
+                <span className="font-semibold">{t("language")}:</span>{" "}
+                <SelectLanguage
+                  isProfile={true}
+                  updateExtUser={updateExtUser}
+                />
+              </li>
             </ul>
             <div
               className={`${
@@ -620,6 +686,7 @@ function UserProfile() {
                 type="button"
                 onClick={(e) => {
                   if (
+                    editmode &&
                     !isSubscribe &&
                     publicUserName?.length > 0 &&
                     publicUserName?.length < 9
@@ -689,6 +756,7 @@ function UserProfile() {
               )}
             </ModalUi>
           )}
+
           {isUpgrade && (
             <div className="op-modal op-modal-open">
               <div className="max-h-90 bg-base-100 w-[95%] md:max-w-[500px] rounded-box relative">
@@ -708,7 +776,7 @@ function UserProfile() {
                       <p>{t("user-name-limit-char")}</p>
                       <div className="op-card-actions justify-end">
                         <button
-                          onClick={() => navigate("/subscription")}
+                          onClick={() => handlePaidRoute()}
                           className="op-btn op-btn-accent"
                         >
                           {t("upgrade-now")}

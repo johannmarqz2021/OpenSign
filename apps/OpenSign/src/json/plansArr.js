@@ -3,6 +3,7 @@ import { isStaging } from "../constant/const";
 const plans = [
   {
     planName: "OPENSIGN™ FREE",
+    code: { monthly: "freeplan", yearly: "freeplan" },
     img: "free.png",
     currency: "",
     monthlyPrice: "Free",
@@ -12,7 +13,7 @@ const plans = [
     url: "",
     target: "_blank",
     benefits: [
-      "Unlimited envelopes",
+      "Unlimited digital signatures",
       "Sign documents yourself",
       "Request signatures from others",
       "14 field types",
@@ -26,12 +27,11 @@ const plans = [
       "Decline document support",
       "Email notifications",
       "Recipient authentication using OTP",
-      "Bulk send (upto 5 docs)",
       "Public profiles",
       "And much more"
     ],
     yearlyBenefits: [
-      "Unlimited envelopes",
+      "Unlimited digital signatures",
       "Sign documents yourself",
       "Request signatures from others",
       "14 field types",
@@ -45,13 +45,15 @@ const plans = [
       "Decline document support",
       "Email notifications",
       "Recipient authentication using OTP",
-      "Bulk send (upto 5 docs)",
       "Public profiles",
       "And much more"
     ]
   },
   {
     planName: "OPENSIGN™ PROFESSIONAL",
+    code: isStaging
+      ? { monthly: "pro-weekly", yearly: "pro-yearly" }
+      : { monthly: "professional-monthly", yearly: "professional-yearly" },
     img: "professional.png",
     currency: "$",
     monthlyPrice: "29.99",
@@ -73,10 +75,10 @@ const plans = [
       "Webhooks",
       "Zapier integration",
       "API Access",
-      "100 API signatures included",
+      "upto 100 API signatures",
       "Custom email templates",
       "Auto reminders",
-      "Bulk send (upto 20 docs)",
+      "Bulk send (upto 100 docs)",
       "Premium Public profile usernames",
       "Embedding (coming soon)"
     ],
@@ -88,16 +90,17 @@ const plans = [
       "Webhooks",
       "Zapier integration",
       "API Access",
-      "240 API signatures included",
+      "upto 240 API signatures",
       "Custom email templates",
       "Auto reminders",
-      "Bulk send (upto 20 docs)",
+      "Bulk send (upto 240 docs)",
       "Premium Public profile usernames",
       "Embedding (coming soon)"
     ]
   },
   {
     planName: "OPENSIGN™ TEAMS",
+    code: { monthly: "teams-monthly", yearly: "teams-yearly" },
     img: "teams.png",
     currency: "$",
     monthlyPrice: `39.99<sup style="font-size: 17px;">/user</sup>`,
@@ -105,31 +108,31 @@ const plans = [
     subtitle: "Exclusive Access to advanced features.",
     btn: { text: "Subscribe", color: "op-btn-accent" },
     url: isStaging
-      ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/team-weekly"
+      ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-monthly"
       : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af901237d0702bfaa959406306635d80f138c/teams-monthly",
     yearlyUrl: isStaging
-      ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/team-weekly"
+      ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-yearly"
       : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af9011a864994bbeeec71fcf106188630199d/teams-yearly",
     target: "_self",
     benefits: [
       "Everything in OpenSign™ professional",
-      "100 API signatures included",
+      "upto 100 API signatures",
       "Teams and Organizations",
       "Share Templates with teams",
       "Share Templates with individuals",
       "DocumentId removal from signed docs",
-      "Bulk send (upto 50 docs)",
+      "Bulk send (upto 100 docs)",
       "Request Payments (coming soon)",
       "Mobile app (coming soon)"
     ],
     yearlyBenefits: [
       "Everything in OpenSign™ professional",
-      "500 API signatures included",
+      "upto 500 API signatures",
       "Teams and Organizations",
       "Share Templates with teams",
       "Share Templates with individuals",
       "DocumentId removal from signed docs",
-      "Bulk send (upto 50 docs)",
+      "Bulk send (upto 500 docs)",
       "Request Payments (coming soon)",
       "Mobile app (coming soon)"
     ]
@@ -170,5 +173,75 @@ export const validplan = {
   "teams-yearly": true,
   "enterprise-monthly": true,
   "enterprise-yearly": true
+};
+export const paidUrl = (plan) => {
+  const teamperiod = {
+    "team-weekly": "monthly",
+    "team-yearly": "yearly",
+    "teams-monthly": "monthly",
+    "teams-yearly": "yearly"
+  };
+  const period = teamperiod[plan] || "";
+  if (period) {
+    const extUser =
+      localStorage.getItem("Extand_Class") &&
+      JSON.parse(localStorage.getItem("Extand_Class"))?.[0];
+    const user = {
+      name: extUser?.Name,
+      email: extUser?.Email,
+      company: extUser?.Company,
+      phone: extUser?.Phone
+    };
+    // console.log("userDetails ", userDetails);
+    const fullname = user && user.name ? user.name.split(" ") : "";
+    const firstname = fullname?.[0]
+      ? "first_name=" + encodeURIComponent(fullname?.[0])
+      : "";
+    const lastname = fullname?.[1]
+      ? "&last_name=" + encodeURIComponent(fullname?.[1])
+      : "";
+    const name = firstname ? firstname + lastname : "";
+    const email =
+      user && user.email ? "&email=" + encodeURIComponent(user.email) : "";
+    const company =
+      user && user.company
+        ? "&company_name=" + encodeURIComponent(user.company)
+        : "";
+    const phone =
+      user && user.phone ? "&mobile=" + encodeURIComponent(user.phone) : "";
+    const allowedUsers =
+      localStorage.getItem("allowedUsers") &&
+      localStorage.getItem("allowedUsers") > 0
+        ? localStorage.getItem("allowedUsers") - 1
+        : "";
+    const quantity = allowedUsers
+      ? `addon_code%5B0%5D=extra-teams-users-${period}&addon_quantity%5B0%5D=${allowedUsers}&`
+      : "";
+
+    const details =
+      "?shipping_country_code=US&billing_country_code=US&billing_state_code=CA&" +
+      quantity +
+      name +
+      email +
+      company +
+      phone;
+
+    if (user) {
+      localStorage.setItem("userDetails", JSON.stringify(user));
+    }
+    const url = {
+      monthly: isStaging
+        ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-monthly"
+        : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af901237d0702bfaa959406306635d80f138c/teams-monthly",
+      yearly: isStaging
+        ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-yearly"
+        : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af9011a864994bbeeec71fcf106188630199d/teams-yearly"
+    };
+
+    const planurl = url[period] + details;
+    return planurl;
+  } else {
+    return "/subscription";
+  }
 };
 export default plans;
