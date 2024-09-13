@@ -6,27 +6,30 @@ import Parse from "parse";
 import { useWindowSize } from "../hook/useWindowSize";
 import {
   checkIsSubscribed,
-  checkIsSubscribedTeam,
   getAppLogo,
   openInNewTab,
   saveLanguageInLocal
 } from "../constant/Utils";
 import { isEnableSubscription, isStaging } from "../constant/const";
+import { validplan } from "../json/plansArr";
 import { useTranslation } from "react-i18next";
+import ModalUi from "../primitives/ModalUi";
+import QuotaCard from "../primitives/QuotaCard";
 
 const Header = ({ showSidebar }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { width } = useWindowSize();
-  let username = localStorage.getItem("username");
+  const username = localStorage.getItem("username") || "";
   const image = localStorage.getItem("profileImg") || dp;
   const [isOpen, setIsOpen] = useState(false);
   const [isSubscribe, setIsSubscribe] = useState(true);
-  const [isPro, setIsPro] = useState(false);
-  const [isTeam, setIsTeam] = useState(false);
+  const [isTeam, setIsTeam] = useState({ plan: "", isValid: false });
   const [applogo, setAppLogo] = useState(
     localStorage.getItem("appLogo") || " "
   );
+  const [emailUsed, setEmailUsed] = useState(0);
+  const [isModal, setIsModal] = useState(false);
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -37,9 +40,8 @@ const Header = ({ showSidebar }) => {
   }, []);
   async function checkSubscription() {
     if (isEnableSubscription) {
-      const getIsSubscribe = await checkIsSubscribed();
-      const getIsTeam = await checkIsSubscribedTeam();
-      if (getIsSubscribe) {
+      const subscribe = await checkIsSubscribed();
+      if (subscribe.isValid) {
         const applogo = await getAppLogo();
         if (applogo?.logo) {
           setAppLogo(applogo?.logo);
@@ -47,9 +49,15 @@ const Header = ({ showSidebar }) => {
           setAppLogo(localStorage.getItem("appLogo") || "");
         }
       }
-      setIsPro(getIsSubscribe);
-      setIsTeam(getIsTeam);
-      setIsSubscribe(getIsSubscribe);
+      setIsTeam(subscribe);
+      setIsSubscribe(subscribe.isValid);
+      try {
+        const extUser = await Parse.Cloud.run("getUserDetails");
+        const MonthlyFreeEmails = extUser?.get("MonthlyFreeEmails") || 0;
+        setEmailUsed(MonthlyFreeEmails);
+      } catch (err) {
+        console.log("err in while fetching monthlyfreeEmails", err);
+      }
     }
   }
 
@@ -103,18 +111,22 @@ const Header = ({ showSidebar }) => {
       window.open("https://console.opensignlabs.com/");
     }
   };
+  const handleNavigation = () => {
+    navigate("/subscription");
+  };
+  const handleMailUsed = () => {
+    setIsModal(!isModal);
+  };
   return (
     <div>
       {isEnableSubscription && (
         <div className="shadow py-1 text-center bg-[#CAE4FA] text-[14px] p-1">
-          New Feature: Public Profiles are now live! Create and share public
-          templates with ease—
+          {t("header-news")} —
           <span
             className="cursor-pointer font-medium underline text-blue-800"
             onClick={() => navigate("/profile")}
           >
-            {" "}
-            Setup Now.
+            {" " + t("header-news-btn") + "."}
           </span>
         </div>
       )}
@@ -141,18 +153,18 @@ const Header = ({ showSidebar }) => {
             <div>
               <button
                 className="text-xs md:text-sm shadow op-btn op-btn-outline op-btn-sm md:op-btn-md op-btn-accent"
-                onClick={() => navigate("/subscription")}
+                onClick={() => handleNavigation()}
               >
                 {t("upgrade-now")}
               </button>
             </div>
           )}
-          {!isTeam && isPro && (
+          {isTeam.isValid && !validplan[isTeam.plan] && (
             <div className="w-[35px] h-[35px] bg-white rounded-full ring-[1px] ring-offset-2 ring-[#002862] text-[#002862] overflow-hidden font-semibold flex items-center justify-center">
               {t("pro")}
             </div>
           )}
-          {isTeam && (
+          {validplan[isTeam.plan] && (
             <div className="w-[35px] h-[35px] bg-white rounded-full ring-[1px] text-[13px] ring-offset-2 ring-[#002862] text-[#002862] overflow-hidden font-semibold flex items-center justify-center">
               {t("team")}
             </div>
@@ -222,15 +234,19 @@ const Header = ({ showSidebar }) => {
                   <i className="fa-light fa-lock"></i> {t("change-password")}
                 </span>
               </li>
-              <li
-                onClick={() => {
-                  handleConsoleRedirect();
-                }}
-              >
+              <li onClick={() => handleConsoleRedirect()}>
                 <span>
                   <i className="fa-light fa-id-card"></i> Console
                 </span>
               </li>
+              {isEnableSubscription && isTeam?.plan === "freeplan" && (
+                <li className="cursor-pointer" onClick={handleMailUsed}>
+                  <span>
+                    <i className="fa-light fa-envelope"></i>
+                    {emailUsed}/15 {t("sent-this-month")}
+                  </span>
+                </li>
+              )}
               <li onClick={closeDropdown}>
                 <span>
                   <i className="fa-light fa-arrow-right-from-bracket"></i>{" "}
@@ -241,6 +257,9 @@ const Header = ({ showSidebar }) => {
           </div>
         </div>
       </div>
+      <ModalUi isOpen={isModal}>
+        <QuotaCard isPaidInfo={true} handlClose={handleMailUsed} />
+      </ModalUi>
     </div>
   );
 };

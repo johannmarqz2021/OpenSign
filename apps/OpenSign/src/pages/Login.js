@@ -80,7 +80,9 @@ function Login() {
     }
     setState({ ...state, [name]: value });
   };
-
+  const handlePaidRoute = () => {
+    navigate("/subscription");
+  };
   const handleSubmit = async (event) => {
     localStorage.removeItem("accesstoken");
     event.preventDefault();
@@ -158,9 +160,9 @@ function Login() {
                           JSON.stringify(LocalUserDetails)
                         );
                         const res = await fetchSubscription();
-                        const freeplan = res.plan;
+                        const plan = res.plan;
                         const billingDate = res.billingDate;
-                        if (freeplan === "freeplan") {
+                        if (plan === "freeplan") {
                           setState({ ...state, loading: false });
                           navigate(redirectUrl);
                         } else if (billingDate) {
@@ -171,11 +173,11 @@ function Login() {
                             navigate(redirectUrl);
                           } else {
                             setState({ ...state, loading: false });
-                            navigate(`/subscription`, { replace: true });
+                            handlePaidRoute(plan);
                           }
                         } else {
                           setState({ ...state, loading: false });
-                          navigate(`/subscription`, { replace: true });
+                          handlePaidRoute(plan);
                         }
                       } else {
                         setState({ ...state, loading: false });
@@ -330,9 +332,9 @@ function Login() {
                   localStorage.setItem("pageType", menu.pageType);
                   if (isEnableSubscription) {
                     const res = await fetchSubscription();
-                    const freeplan = res.plan;
+                    const plan = res.plan;
                     const billingDate = res.billingDate;
-                    if (freeplan === "freeplan") {
+                    if (plan === "freeplan") {
                       navigate(redirectUrl);
                     } else if (billingDate) {
                       if (new Date(billingDate) > new Date()) {
@@ -342,14 +344,14 @@ function Login() {
                         if (isFreeplan) {
                           navigate(redirectUrl);
                         } else {
-                          navigate(`/subscription`, { replace: true });
+                          handlePaidRoute(plan);
                         }
                       }
                     } else {
                       if (isFreeplan) {
                         navigate(redirectUrl);
                       } else {
-                        navigate(`/subscription`, { replace: true });
+                        handlePaidRoute(plan);
                       }
                     }
                   } else {
@@ -462,8 +464,8 @@ function Login() {
                 localStorage.setItem("userDetails", JSON.stringify(userInfo));
                 const res = await fetchSubscription();
                 const billingDate = res.billingDate;
-                const freeplan = res.plan;
-                if (freeplan === "freeplan") {
+                const plan = res.plan;
+                if (plan === "freeplan") {
                   navigate(redirectUrl);
                 } else if (billingDate) {
                   if (new Date(billingDate) > new Date()) {
@@ -471,10 +473,10 @@ function Login() {
                     // Redirect to the appropriate URL after successful login
                     navigate(redirectUrl);
                   } else {
-                    navigate(`/subscription`);
+                    handlePaidRoute(plan);
                   }
                 } else {
-                  navigate(`/subscription`);
+                  handlePaidRoute(plan);
                 }
               } else {
                 // Redirect to the appropriate URL after successful login
@@ -789,9 +791,7 @@ function Login() {
             </div>
             <SelectLanguage />
             {state.alertMsg && (
-              <Alert type={state.alertType}>
-                <div className="ml-3">{state.alertMsg}</div>
-              </Alert>
+              <Alert type={state.alertType}>{state.alertMsg}</Alert>
             )}
           </div>
           <ModalUi

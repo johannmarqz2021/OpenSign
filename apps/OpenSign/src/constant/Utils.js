@@ -1,7 +1,7 @@
 import axios from "axios";
 import moment from "moment";
 import React from "react";
-import { rgb } from "pdf-lib";
+import { PDFDocument, rgb, degrees } from "pdf-lib";
 import Parse from "parse";
 import { appInfo } from "./appinfo";
 import { saveAs } from "file-saver";
@@ -56,18 +56,66 @@ export async function fetchSubscription(
       ? { contactId: contactObjId }
       : { extUserId: extUser };
     const tenatRes = await axios.post(url, params, { headers: headers });
-    let plan, status, billingDate;
+    let plan, status, billingDate, adminId;
     if (isGuestSign) {
       plan = tenatRes.data?.result?.result?.plan;
       status = tenatRes.data?.result?.result?.isSubscribed;
     } else {
       plan = tenatRes.data?.result?.result?.PlanCode;
       billingDate = tenatRes.data?.result?.result?.Next_billing_date?.iso;
+      const allowedUsers = tenatRes.data?.result?.result?.AllowedUsers || 0;
+      adminId = tenatRes?.data?.result?.result?.ExtUserPtr?.objectId;
+      localStorage.setItem("allowedUsers", allowedUsers);
     }
-    return { plan, billingDate, status };
+    return { plan, billingDate, status, adminId };
   } catch (err) {
     console.log("Err in fetch subscription", err);
-    return { plan: "", billingDate: "" };
+    return { plan: "", billingDate: "", status: "", adminId: "" };
+  }
+}
+
+export async function fetchSubscriptionInfo() {
+  try {
+    const Extand_Class = localStorage.getItem("Extand_Class");
+    const extClass = Extand_Class && JSON.parse(Extand_Class);
+    // console.log("extClass ", extClass);
+    if (extClass && extClass.length > 0) {
+      const extUser = extClass[0].objectId;
+      const baseURL = localStorage.getItem("baseUrl");
+      const url = `${baseURL}functions/getsubscriptions`;
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+        sessionToken: localStorage.getItem("accesstoken")
+      };
+      const params = { extUserId: extUser };
+      const tenatRes = await axios.post(url, params, { headers: headers });
+
+      const price =
+        tenatRes.data?.result?.result?.SubscriptionDetails?.data?.subscription
+          ?.plan?.price;
+      const totalPrice =
+        tenatRes.data?.result?.result?.SubscriptionDetails?.data?.subscription
+          ?.amount;
+      const planId =
+        tenatRes.data?.result?.result?.SubscriptionDetails?.data?.subscription
+          ?.subscription_id;
+      const plan_code =
+        tenatRes.data?.result?.result?.SubscriptionDetails?.data?.subscription
+          ?.plan?.plan_code;
+      const totalAllowedUser = tenatRes.data?.result?.result?.AllowedUsers || 0;
+      return {
+        status: "success",
+        price: price,
+        totalPrice: totalPrice,
+        planId: planId,
+        plan_code: plan_code,
+        totalAllowedUser: totalAllowedUser
+      };
+    }
+  } catch (err) {
+    console.log("Err in fetch subscription", err);
+    return { status: "error", error: err };
   }
 }
 //function to get subcripition details from subscription class
@@ -75,41 +123,22 @@ export async function checkIsSubscribed() {
   try {
     const res = await fetchSubscription();
     if (res.plan === "freeplan") {
-      return false;
-    } else if (res.billingDate) {
-      if (new Date(res.billingDate) > new Date()) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  } catch (err) {
-    console.log("Err in fetch subscription", err);
-    return false;
-  }
-}
-
-//function to get subcripition details from subscription class
-export async function checkIsSubscribedTeam() {
-  try {
-    const res = await fetchSubscription();
-    if (res.plan === "freeplan") {
-      return false;
+      return { plan: res.plan, isValid: false, adminId: res?.adminId };
     } else if (res.billingDate) {
       const plan = validplan[res.plan] || false;
       if (plan && new Date(res.billingDate) > new Date()) {
-        return true;
+        return { plan: res.plan, isValid: true, adminId: res?.adminId };
+      } else if (new Date(res.billingDate) > new Date()) {
+        return { plan: res.plan, isValid: true, adminId: res?.adminId };
       } else {
-        return false;
+        return { plan: res.plan, isValid: false, adminId: res?.adminId };
       }
     } else {
-      return false;
+      return { plan: res.plan, isValid: false, adminId: res?.adminId };
     }
   } catch (err) {
     console.log("Err in fetch subscription", err);
-    return false;
+    return { plan: "no-plan", isValid: false, adminId: "" };
   }
 }
 
@@ -630,7 +659,12 @@ export const randomId = () => {
   return randomDigit;
 };
 
-export const createDocument = async (template, placeholders, signerData) => {
+export const createDocument = async (
+  template,
+  placeholders,
+  signerData,
+  pdfUrl
+) => {
   if (template && template.length > 0) {
     const Doc = template[0];
 
@@ -653,7 +687,7 @@ export const createDocument = async (template, placeholders, signerData) => {
     }
     const data = {
       Name: Doc.Name,
-      URL: Doc.URL,
+      URL: pdfUrl,
       SignedUrl: Doc.SignedUrl,
       SentToOthers: Doc.SentToOthers,
       Description: Doc.Description,
@@ -762,7 +796,9 @@ export const onChangeInput = (
   initial,
   dateFormat,
   isDefaultEmpty,
-  isRadio
+  isRadio,
+  fontSize,
+  fontColor
 ) => {
   const isSigners = xyPostion.some((data) => data.signerPtr);
   let filterSignerPos;
@@ -789,6 +825,8 @@ export const onChangeInput = (
                 options: {
                   ...position.options,
                   response: value,
+                  fontSize: fontSize,
+                  fontColor: fontColor,
                   validation: {
                     type: "date-format",
                     format: dateFormat // This indicates the required date format explicitly.
@@ -835,7 +873,6 @@ export const onChangeInput = (
     }
   } else {
     let getXYdata = xyPostion[index].pos;
-
     const updatePosition = getXYdata.map((positionData) => {
       if (positionData.key === signKey) {
         if (dateFormat) {
@@ -844,6 +881,8 @@ export const onChangeInput = (
             options: {
               ...positionData.options,
               response: value,
+              fontSize: fontSize,
+              fontColor: fontColor,
               validation: {
                 type: "date-format",
                 format: dateFormat // This indicates the required date format explicitly.
@@ -1043,13 +1082,18 @@ export const embedDocId = async (pdfDoc, documentId, allPages) => {
     const textContent = documentId && `OpenSign™ DocumentId: ${documentId} `;
     const pages = pdfDoc.getPages();
     const page = pages[i];
-    page.drawText(textContent, {
-      x: 10,
-      y: page.getHeight() - 10,
-      size: fontSize,
+    const getObj = compensateRotation(
+      page.getRotation().angle,
+      10,
+      5,
+      1,
+      page.getSize(),
+      fontSize,
+      rgb(0.5, 0.5, 0.5),
       font,
-      color: rgb(0.5, 0.5, 0.5)
-    });
+      page
+    );
+    page.drawText(textContent, getObj);
   }
 };
 
@@ -1243,6 +1287,21 @@ const calculateFontSize = (position, containerScale, signyourself) => {
     return font / containerScale;
   }
 };
+
+const getWidgetsFontColor = (type) => {
+  switch (type) {
+    case "red":
+      return rgb(1, 0, 0);
+    case "black":
+      return rgb(0, 0, 0);
+    case "blue":
+      return rgb(0, 0, 1);
+    case "yellow":
+      return rgb(0.9, 1, 0);
+    default:
+      return rgb(0, 0, 0);
+  }
+};
 //function for embed multiple signature using pdf-lib
 export const multiSignEmbed = async (
   widgets,
@@ -1351,6 +1410,9 @@ export const multiSignEmbed = async (
           return resizePos;
         }
       };
+      const color = position?.options?.fontColor;
+      const updateColorInRgb = getWidgetsFontColor(color);
+      const fontSize = parseInt(position?.options?.fontSize || 13);
       const widgetTypeExist = [
         textWidget,
         textInputWidget,
@@ -1361,11 +1423,11 @@ export const multiSignEmbed = async (
         "email"
       ].includes(position.type);
       if (position.type === "checkbox") {
-        let checkboxOptionGapFromTop, isCheck;
+        let checkboxGapFromTop, isCheck;
         let y = yPos(position);
-        const optionsFontSize = 13;
-        const checkboxSize = 18;
-        const checkboxTextGapFromLeft = 22;
+        const optionsFontSize = fontSize || 13;
+        const checkboxSize = fontSize;
+        const checkboxTextGapFromLeft = fontSize + 5 || 22;
         if (position?.options?.values.length > 0) {
           position?.options?.values.forEach((item, ind) => {
             const checkboxRandomId = "checkbox" + randomId();
@@ -1382,9 +1444,9 @@ export const multiSignEmbed = async (
             const checkbox = form.createCheckBox(checkboxRandomId);
 
             if (ind > 0) {
-              y = y + checkboxOptionGapFromTop;
+              y = y + checkboxGapFromTop;
             } else {
-              checkboxOptionGapFromTop = 26;
+              checkboxGapFromTop = fontSize + 5 || 26;
             }
 
             if (!position?.options?.isHideLabel) {
@@ -1396,7 +1458,7 @@ export const multiSignEmbed = async (
                 1,
                 page.getSize(),
                 optionsFontSize,
-                rgb(0, 0, 0),
+                updateColorInRgb,
                 font,
                 page
               );
@@ -1427,20 +1489,6 @@ export const multiSignEmbed = async (
           signyourself
         );
         parseInt(fontSize);
-
-        const color = position?.options?.fontColor;
-        let updateColorInRgb;
-        if (color === "red") {
-          updateColorInRgb = rgb(1, 0, 0);
-        } else if (color === "black") {
-          updateColorInRgb = rgb(0, 0, 0);
-        } else if (color === "blue") {
-          updateColorInRgb = rgb(0, 0, 1);
-        } else if (color === "yellow") {
-          updateColorInRgb = rgb(0.9, 1, 0);
-        } else {
-          updateColorInRgb = rgb(0, 0, 0);
-        }
         let textContent;
         if (position?.options?.response) {
           textContent = position.options?.response;
@@ -1519,6 +1567,8 @@ export const multiSignEmbed = async (
           y += 18; // Adjust the line height as needed
         }
       } else if (position.type === "dropdown") {
+        const fontsize = parseInt(position?.options?.fontSize) || 12;
+
         const dropdownRandomId = "dropdown" + randomId();
         const dropdown = form.createDropdown(dropdownRandomId);
         dropdown.addOptions(position?.options?.values);
@@ -1527,31 +1577,41 @@ export const multiSignEmbed = async (
         } else if (position?.options?.defaultValue) {
           dropdown.select(position?.options?.defaultValue);
         }
+        // Define the default appearance string
+        // Example format: `/FontName FontSize Tf 0 g` where:
+        // - `/FontName` is the name of the font (e.g., `/Helv` for Helvetica)
+        // - `FontSize` is the size you want to set (e.g., 12)
+        // - `Tf` specifies the font and size
+        // - `0 g` sets the text color to black
+        const defaultAppearance = `/Helv ${fontsize} Tf 0 g`;
+        // Set the default appearance for the dropdown field
+        dropdown.acroField.setDefaultAppearance(defaultAppearance);
+        dropdown.setFontSize(fontsize);
         const dropdownObj = {
           x: xPos(position),
           y: yPos(position),
           width: widgetWidth,
           height: widgetHeight
         };
-        dropdown.defaultUpdateAppearances(font);
         const dropdownOption = getWidgetPosition(page, dropdownObj, 1);
         const dropdownSelected = { ...dropdownOption, font: font };
+        dropdown.defaultUpdateAppearances(font);
         dropdown.addToPage(page, dropdownSelected);
         dropdown.enableReadOnly();
       } else if (position.type === radioButtonWidget) {
         const radioRandomId = "radio" + randomId();
         const radioGroup = form.createRadioGroup(radioRandomId);
         let radioOptionGapFromTop;
-        const optionsFontSize = 16;
-        const radioTextGapFromLeft = 20;
-        const radioSize = 18;
+        const optionsFontSize = fontSize || 13;
+        const radioTextGapFromLeft = fontSize + 5 || 20;
+        const radioSize = fontSize;
         let y = yPos(position);
         if (position?.options?.values.length > 0) {
           position?.options?.values.forEach((item, ind) => {
             if (ind > 0) {
               y = y + radioOptionGapFromTop;
             } else {
-              radioOptionGapFromTop = 25;
+              radioOptionGapFromTop = fontSize + 10 || 25;
             }
             if (!position?.options?.isHideLabel) {
               // below line of code is used to embed label with radio button in pdf
@@ -1563,7 +1623,7 @@ export const multiSignEmbed = async (
                 1,
                 page.getSize(),
                 optionsFontSize,
-                rgb(0, 0, 0),
+                updateColorInRgb,
                 font,
                 page
               );
@@ -1799,29 +1859,26 @@ export const handleCopyNextToWidget = (
   setXyPostion,
   userId
 ) => {
-  const isSigners = xyPostion.some((data) => data.signerPtr);
   let filterSignerPos;
   //get position of previous widget and create new widget next to that widget on same data except
   // xPosition and key
-  let newpos = position;
+  let newposition = position;
   const calculateXPosition =
     parseInt(position.xPosition) +
     defaultWidthHeight(widgetType).width +
     resizeBorderExtraWidth();
   const newId = randomId();
-  newpos = { ...newpos, xPosition: calculateXPosition, key: newId };
+  newposition = { ...newposition, xPosition: calculateXPosition, key: newId };
   //if condition to create widget in request-sign flow
-  if (isSigners) {
-    if (userId) {
-      filterSignerPos = xyPostion.filter((data) => data.Id === userId);
-    }
-    const getPlaceHolder = filterSignerPos[0]?.placeHolder;
-    const getPageNumer = getPlaceHolder.filter(
+  if (userId) {
+    filterSignerPos = xyPostion.filter((data) => data.Id === userId);
+    const getPlaceHolder = filterSignerPos && filterSignerPos[0]?.placeHolder;
+    const getPageNumer = getPlaceHolder?.filter(
       (data) => data.pageNumber === index
     );
-    const getXYdata = getPageNumer[0].pos;
-    getXYdata.push(newpos);
-    if (getPageNumer.length > 0) {
+    const getXYdata = getPageNumer && getPageNumer[0]?.pos;
+    getXYdata.push(newposition);
+    if (getPageNumer && getPageNumer.length > 0) {
       const newUpdateSignPos = getPlaceHolder.map((obj) => {
         if (obj.pageNumber === index) {
           return { ...obj, pos: getXYdata };
@@ -1839,9 +1896,8 @@ export const handleCopyNextToWidget = (
       setXyPostion(newUpdateSigner);
     }
   } else {
-    // else condition to create widget in sign-yourself flow
-    let getXYdata = xyPostion[index].pos;
-    getXYdata.push(newpos);
+    let getXYdata = xyPostion[index]?.pos || [];
+    getXYdata.push(newposition);
     const updatePlaceholder = xyPostion.map((obj, ind) => {
       if (ind === index) {
         return { ...obj, pos: getXYdata };
@@ -2142,9 +2198,11 @@ function compensateRotation(
   font,
   page
 ) {
+  // Ensure pageRotation is between 0 and 360 degrees
+  pageRotation = ((pageRotation % 360) + 360) % 360;
   let rotationRads = (pageRotation * Math.PI) / 180;
 
-  //These coords are now from bottom/left
+  // Coordinates are from bottom-left
   let coordsFromBottomLeft = { x: x / scale };
   if (pageRotation === 90 || pageRotation === 270) {
     coordsFromBottomLeft.y = dimensions.width - (y + fontSize) / scale;
@@ -2154,6 +2212,7 @@ function compensateRotation(
 
   let drawX = null;
   let drawY = null;
+
   if (pageRotation === 90) {
     drawX =
       coordsFromBottomLeft.x * Math.cos(rotationRads) -
@@ -2179,8 +2238,8 @@ function compensateRotation(
       coordsFromBottomLeft.x * Math.sin(rotationRads) +
       coordsFromBottomLeft.y * Math.cos(rotationRads) +
       dimensions.height;
-  } else {
-    //no rotation
+  } else if (pageRotation === 0 || pageRotation === 360) {
+    // No rotation or full rotation
     drawX = coordsFromBottomLeft.x;
     drawY = coordsFromBottomLeft.y;
   }
@@ -2282,5 +2341,116 @@ export const getDefaultSignature = async (objectId) => {
     return {
       status: "error"
     };
+  }
+};
+
+//function to rotate pdf page
+export async function rotatePdfPage(
+  url,
+  rotateDegree,
+  pageNumber,
+  pdfRotateBase64
+) {
+  let file;
+
+  //condition to handle pdf base64 in arrayBuffer format
+  if (pdfRotateBase64) {
+    file = base64ToArrayBuffer(pdfRotateBase64);
+  } else {
+    //condition to handle pdf url in arrayBuffer format
+    file = await convertPdfArrayBuffer(url);
+  }
+  // Load the existing PDF
+  const pdfDoc = await PDFDocument.load(file);
+  // Get the page according to page number
+  const page = pdfDoc.getPage(pageNumber);
+  //get current page rotation angle
+  const currentRotation = page.getRotation().angle;
+  // Apply the rotation in the counterclockwise direction
+  let newRotation = (currentRotation + rotateDegree) % 360;
+  // Adjust for negative angles to keep within 0-359 range
+  if (newRotation < 0) {
+    newRotation += 360;
+  }
+  page.setRotation(degrees(newRotation));
+  const pdfbase64 = await pdfDoc.saveAsBase64({ useObjectStreams: false });
+  //convert base64 to arraybuffer is used in pdf-lib
+  //pdfbase64 is used to show pdf rotated format
+  const arrayBuffer = base64ToArrayBuffer(pdfbase64);
+  //`base64` is used to show pdf
+  return { arrayBuffer: arrayBuffer, base64: pdfbase64 };
+}
+function base64ToArrayBuffer(base64) {
+  // Decode the base64 string to a binary string
+  const binaryString = atob(base64);
+  // Create a new ArrayBuffer with the same length as the binary string
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  // Convert the binary string to a byte array
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  // Return the ArrayBuffer
+  return bytes.buffer;
+}
+
+export const convertBase64ToFile = async (pdfName, pdfBase64) => {
+  const fileName = sanitizeFileName(pdfName) + ".pdf";
+  const pdfFile = new Parse.File(fileName, { base64: pdfBase64 });
+  // Save the Parse File if needed
+  const pdfData = await pdfFile.save();
+  const pdfUrl = pdfData.url();
+  return pdfUrl;
+};
+export const onClickZoomIn = (scale, zoomPercent, setScale, setZoomPercent) => {
+  setScale(scale + 0.1 * scale);
+  setZoomPercent(zoomPercent + 10);
+};
+export const onClickZoomOut = (
+  zoomPercent,
+  scale,
+  setZoomPercent,
+  setScale
+) => {
+  if (zoomPercent > 0) {
+    if (zoomPercent === 10) {
+      setScale(1);
+    } else {
+      setScale(scale - 0.1 * scale);
+    }
+    setZoomPercent(zoomPercent - 10);
+  }
+};
+
+//function to use remove widgets from current page when user want to rotate page
+export const handleRemoveWidgets = (
+  setSignerPos,
+  signerPos,
+  pageNumber,
+  setIsRotate
+) => {
+  const updatedSignerPos = signerPos.map((placeholderObj) => {
+    return {
+      ...placeholderObj,
+      placeHolder: placeholderObj?.placeHolder?.filter(
+        (data) => data?.pageNumber !== pageNumber
+      )
+    };
+  });
+  setSignerPos(updatedSignerPos);
+  setIsRotate({
+    status: false,
+    degree: 0
+  });
+};
+//function to show warning when user rotate page and there are some already widgets on that page
+export const handleRotateWarning = (signerPos, pageNumber) => {
+  const placeholderExist = signerPos?.some((placeholderObj) =>
+    placeholderObj?.placeHolder?.some((data) => data?.pageNumber === pageNumber)
+  );
+  if (placeholderExist) {
+    return true;
+  } else {
+    return false;
   }
 };

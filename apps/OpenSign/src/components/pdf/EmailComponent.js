@@ -34,7 +34,7 @@ function EmailComponent({
         const imgPng =
           "https://qikinnovation.ams3.digitaloceanspaces.com/logo.png";
 
-        let url = `${localStorage.getItem("baseUrl")}functions/sendmailv3/`;
+        let url = `${localStorage.getItem("baseUrl")}functions/sendmailv3`;
         const headers = {
           "Content-Type": "application/json",
           "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
@@ -74,26 +74,15 @@ function EmailComponent({
         });
       }
     }
-
-    if (sendMail && sendMail.data.result.status === "success") {
+    if (sendMail?.data?.result?.status === "success") {
       setSuccessEmail(true);
+      setIsEmail(false);
       setTimeout(() => {
         setSuccessEmail(false);
-        setIsEmail(false);
         setEmailValue("");
         setEmailList([]);
       }, 1500);
-
       setIsLoading(false);
-    } else if (sendMail && sendMail.data.result.status === "error") {
-      setIsLoading(false);
-      setIsEmail(false);
-      setIsAlert({
-        isShow: true,
-        alertMessage: t("something-went-wrong-mssg")
-      });
-      setEmailValue("");
-      setEmailList([]);
     } else {
       setIsLoading(false);
       setIsEmail(false);

@@ -50,6 +50,9 @@ const SSOVerify = () => {
       console.log("err", err.message);
     }
   };
+  const handlePaidRoute = () => {
+    navigate("/subscription");
+  };
   const checkExtUser = async (ssosign) => {
     const params = { email: ssosign?.email };
     try {
@@ -196,10 +199,10 @@ const SSOVerify = () => {
                           localStorage.removeItem("userDetails");
                           navigate(redirectUrl);
                         } else {
-                          navigate(`/subscription`, { replace: true });
+                          handlePaidRoute(plan);
                         }
                       } else {
-                        navigate(`/subscription`, { replace: true });
+                        handlePaidRoute(plan);
                       }
                     } else {
                       navigate(redirectUrl);

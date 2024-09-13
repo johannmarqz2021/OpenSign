@@ -31,7 +31,10 @@ import {
   handleDownloadPdf,
   handleToPrint,
   handleDownloadCertificate,
-  getDefaultSignature
+  getDefaultSignature,
+  onClickZoomIn,
+  onClickZoomOut,
+  fetchUrl
 } from "../constant/Utils";
 import LoaderWithMsg from "../primitives/LoaderWithMsg";
 import HandleError from "../primitives/HandleError";
@@ -120,7 +123,6 @@ function PdfRequestFiles(props) {
   const [otp, setOtp] = useState("");
   const [contractName, setContractName] = useState("");
   const [zoomPercent, setZoomPercent] = useState(0);
-  const [totalZoomPercent, setTotalZoomPercent] = useState();
   const [scale, setScale] = useState(1);
   const [uniqueId, setUniqueId] = useState("");
   const [isPublicTemplate, setIsPublicTemplate] = useState(false);
@@ -130,6 +132,8 @@ function PdfRequestFiles(props) {
   const [res, setRes] = useState({});
   const [documentId, setDocumentId] = useState("");
   const [isPublicContact, setIsPublicContact] = useState(false);
+  const [pdfArrayBuffer, setPdfArrayBuffer] = useState("");
+  const [plancode, setPlanCode] = useState("");
   const isHeader = useSelector((state) => state.showHeader);
   const divRef = useRef(null);
 
@@ -138,17 +142,18 @@ function PdfRequestFiles(props) {
   let isGuestSignFlow = false;
   let sendmail;
   let getDocId = "";
-  const route = !props.templateId && window.location.pathname;
+  const route = !props.templateId && window.location.pathname; //'/load/recipientSignPdf/TOAVuhXbfw/fPAKdK1qgX'
+  //window.location.search = ?sendmail=false
   const getQuery =
     !props.templateId &&
     window.location?.search &&
-    window.location?.search?.split("?");
+    window.location?.search?.split("?"); //['','sendmail=false']
 
+  //'sendmail=false'
   if (getQuery) {
-    sendmail = getQuery[1].split("=")[1];
+    sendmail = getQuery[1].split("=")[1]; //false
   }
-  const checkSplit = route && route?.split("/");
-
+  const checkSplit = route && route?.split("/"); // ['', 'load', 'recipientSignPdf', 'TOAVuhXbfw', 'fPAKdK1qgX']
   if (checkSplit && checkSplit.length > 4) {
     isGuestSignFlow = true;
     getDocId = checkSplit[3];
@@ -232,12 +237,17 @@ function PdfRequestFiles(props) {
     const currentUser = JSON.parse(localuser);
     await handleSendOTP(currentUser?.email);
   };
+
+  const handleNavigation = () => {
+    window.location.href = "/subscription";
+  };
   async function checkIsSubscribed(extUserId, contactId) {
     const isGuestSign = isGuestSignFlow || false;
     const res = await fetchSubscription(extUserId, contactId, isGuestSign);
     const plan = res.plan;
     const billingDate = res?.billingDate;
     const status = res?.status;
+    setPlanCode(plan);
     if (plan === "freeplan") {
       return true;
     } else if (billingDate) {
@@ -248,7 +258,7 @@ function PdfRequestFiles(props) {
         if (isGuestSign) {
           setIsSubscriptionExpired(true);
         } else {
-          window.location.href = "/subscription";
+          handleNavigation(plan);
         }
       }
     } else if (isGuestSign) {
@@ -262,7 +272,7 @@ function PdfRequestFiles(props) {
       if (isGuestSign) {
         setIsSubscriptionExpired(true);
       } else {
-        window.location.href = "/subscription";
+        handleNavigation(res.plan);
       }
     }
   }
@@ -285,49 +295,65 @@ function PdfRequestFiles(props) {
         templateDeatils.data && templateDeatils.data.result
           ? [templateDeatils.data.result]
           : [];
-
-      if (documentData && documentData.length > 0) {
-        setIsPublicTemplate(true);
-        const getPublicRole = documentData[0]?.PublicRole[0];
-        const getUniqueIdDetails = documentData[0]?.Placeholders.find(
-          (x) => x.Role === getPublicRole
-        );
-        if (getUniqueIdDetails) {
-          setUniqueId(getUniqueIdDetails.Id);
-        }
-        setSignerPos(documentData[0]?.Placeholders);
-        let placeholdersOrSigners = [];
-        // const placeholder = documentData[0]?.Placeholders;
-        for (const placeholder of documentData[0].Placeholders) {
-          //`emailExist` variable to handle condition for quick send flow and show unsigned signers list
-          const signerIdExist = placeholder?.signerObjId;
-          if (signerIdExist) {
-            const getSignerData = documentData[0].Signers.find(
-              (data) => data.objectId === placeholder?.signerObjId
-            );
-            placeholdersOrSigners.push(getSignerData);
+      if (documentData && documentData[0]?.error) {
+        props?.setTemplateStatus({
+          status: "Invalid"
+        });
+      } else if (documentData && documentData.length > 0) {
+        if (documentData[0]?.IsPublic) {
+          props?.setTemplateStatus({
+            status: "Success"
+          });
+          const url =
+            documentData[0] &&
+            (documentData[0]?.SignedUrl || documentData[0]?.URL);
+          if (url) {
+            //convert document url in array buffer format to use embed widgets in pdf using pdf-lib
+            const arrayBuffer = await convertPdfArrayBuffer(url);
+            if (arrayBuffer === "Error") {
+              setHandleError(t("something-went-wrong-mssg"));
+            } else {
+              setPdfArrayBuffer(arrayBuffer);
+            }
           } else {
-            placeholdersOrSigners.push(placeholder);
+            setHandleError(t("something-went-wrong-mssg"));
           }
+          setIsPublicTemplate(true);
+          const getPublicRole = documentData[0]?.PublicRole[0];
+          const getUniqueIdDetails = documentData[0]?.Placeholders.find(
+            (x) => x.Role === getPublicRole
+          );
+          if (getUniqueIdDetails) {
+            setUniqueId(getUniqueIdDetails.Id);
+          }
+          setSignerPos(documentData[0]?.Placeholders);
+          let placeholdersOrSigners = [];
+          // const placeholder = documentData[0]?.Placeholders;
+          for (const placeholder of documentData[0].Placeholders) {
+            //`emailExist` variable to handle condition for quick send flow and show unsigned signers list
+            const signerIdExist = placeholder?.signerObjId;
+            if (signerIdExist) {
+              const getSignerData = documentData[0].Signers.find(
+                (data) => data.objectId === placeholder?.signerObjId
+              );
+              placeholdersOrSigners.push(getSignerData);
+            } else {
+              placeholdersOrSigners.push(placeholder);
+            }
+          }
+          setUnSignedSigners(placeholdersOrSigners);
+          setPdfDetails(documentData);
+          setIsLoading({
+            isLoad: false
+          });
+        } else {
+          props?.setTemplateStatus({
+            status: "Private"
+          });
         }
-        setUnSignedSigners(placeholdersOrSigners);
-        setPdfDetails(documentData);
-        setIsLoading({
-          isLoad: false
-        });
-      } else if (
-        documentData === "Error: Something went wrong!" ||
-        (documentData.result && documentData.result.error)
-      ) {
-        console.log("err in get template details ");
-        setHandleError(t("something-went-wrong-mssg"));
-        setIsLoading({
-          isLoad: false
-        });
       } else {
-        setHandleError(t("no-data"));
-        setIsLoading({
-          isLoad: false
+        props?.setTemplateStatus({
+          status: "Invalid"
         });
       }
     } catch (err) {
@@ -350,6 +376,20 @@ function PdfRequestFiles(props) {
       //getting document details
       const documentData = await contractDocument(documentId || docId);
       if (documentData && documentData.length > 0) {
+        const url =
+          documentData[0] &&
+          (documentData[0]?.SignedUrl || documentData[0]?.URL);
+        if (url) {
+          //convert document url in array buffer format to use embed widgets in pdf using pdf-lib
+          const arrayBuffer = await convertPdfArrayBuffer(url);
+          if (arrayBuffer === "Error") {
+            setHandleError(t("something-went-wrong-mssg"));
+          } else {
+            setPdfArrayBuffer(arrayBuffer);
+          }
+        } else {
+          setHandleError(t("something-went-wrong-mssg"));
+        }
         setExtUserId(documentData[0]?.ExtUserPtr?.objectId);
         const isCompleted =
           documentData[0].IsCompleted && documentData[0].IsCompleted;
@@ -382,16 +422,11 @@ function PdfRequestFiles(props) {
         }
         if (isCompleted) {
           setIsSigned(true);
-          const data = {
-            isCertificate: true,
-            isModal: true
-          };
+          const data = { isCertificate: true, isModal: true };
           setAlreadySign(true);
           setIsCompleted(data);
           setIsCelebration(true);
-          setTimeout(() => {
-            setIsCelebration(false);
-          }, 5000);
+          setTimeout(() => setIsCelebration(false), 5000);
         } else if (declined) {
           const currentDecline = {
             currnt: "another",
@@ -407,9 +442,7 @@ function PdfRequestFiles(props) {
         } // Check if the current signer is not a last signer and handle the complete message.
         else if (isNextUser) {
           setIsCelebration(true);
-          setTimeout(() => {
-            setIsCelebration(false);
-          }, 5000);
+          setTimeout(() => setIsCelebration(false), 5000);
           setIsCompleted({
             isModal: true,
             message: t("document-signed-alert-1")
@@ -436,7 +469,8 @@ function PdfRequestFiles(props) {
           documentData[0].AuditTrail.length > 0 &&
           documentData[0].AuditTrail.filter(
             (data) =>
-              data.UserPtr.objectId === currUserId && data.Activity === "Signed"
+              data.UserPtr?.objectId === currUserId &&
+              data.Activity === "Signed"
           );
         if (
           checkAlreadySign &&
@@ -516,15 +550,15 @@ function PdfRequestFiles(props) {
           for (const item of placeholdersOrSigners) {
             const checkEmail = item?.email;
             //if email exist then compare user signed by using email else signers objectId
-            const emailOrId = checkEmail ? item.email : item.objectId;
+            const emailOrId = checkEmail ? item.email : item?.objectId;
             //`isSignedSignature` variable to handle break loop whenever it get true
             let isSignedSignature = false;
             //checking the signer who signed the document by using audit trail details.
             //and save signedSigners and unsignedSigners details
             for (const doc of audittrailData) {
               const signedExist = checkEmail
-                ? doc?.UserPtr.Email
-                : doc?.UserPtr.objectId;
+                ? doc?.UserPtr?.Email
+                : doc?.UserPtr?.objectId;
 
               if (emailOrId === signedExist) {
                 signers.push({ ...item });
@@ -602,15 +636,11 @@ function PdfRequestFiles(props) {
         (documentData.result && documentData.result.error)
       ) {
         setHandleError(t("something-went-wrong-mssg"));
-        setIsLoading({
-          isLoad: false
-        });
+        setIsLoading({ isLoad: false });
         console.log("err in  getDocument cloud function ");
       } else {
         setHandleError(t("no-data"));
-        setIsUiLoading({
-          isLoad: false
-        });
+        setIsUiLoading({ isLoad: false });
       }
       //function to get default signatur eof current user from `contracts_Signature` class
       const defaultSignRes = await getDefaultSignature(jsonSender.objectId);
@@ -620,18 +650,13 @@ function PdfRequestFiles(props) {
       } else if (defaultSignRes?.status === "error") {
         setHandleError("Error: Something went wrong!");
       }
-      setIsLoading({
-        isLoad: false
-      });
+      setIsLoading({ isLoad: false });
     } catch (err) {
       console.log("Error: error in getDocumentDetails", err);
       setHandleError("Error: Something went wrong!");
-      setIsLoading({
-        isLoad: false
-      });
+      setIsLoading({ isLoad: false });
     }
   };
-
   //function for embed signature or image url in pdf
   async function embedWidgetsData() {
     //for emailVerified data checking first in localstorage
@@ -807,30 +832,9 @@ function PdfRequestFiles(props) {
             setIsUiLoading(true);
             // `widgets` is Used to return widgets details with page number of current user
             const widgets = checkUser?.[0]?.placeHolder;
-            let pdfArrBuffer;
-            //`contractDocument` function used to get updated SignedUrl
-            //resolved issue of sign document by multiple signers simultaneously
-            const documentData = await contractDocument(documentId);
-            if (documentData && documentData.length > 0) {
-              const url = documentData[0]?.SignedUrl || documentData[0]?.URL;
-              //convert document url in array buffer format to use embed widgets in pdf using pdf-lib
-              const arrayBuffer = await convertPdfArrayBuffer(url);
-              if (arrayBuffer === "Error") {
-                setHandleError(t("invalid-document"));
-              } else {
-                pdfArrBuffer = arrayBuffer;
-              }
-            } else if (
-              documentData === "Error: Something went wrong!" ||
-              (documentData.result && documentData.result.error)
-            ) {
-              setHandleError(t("something-went-wrong-mssg"));
-            } else {
-              setHandleError(t("document-not-found"));
-            }
 
             // Load a PDFDocument from the existing PDF bytes
-            const existingPdfBytes = pdfArrBuffer;
+            const existingPdfBytes = pdfArrayBuffer;
             try {
               const pdfDoc = await PDFDocument.load(existingPdfBytes);
               const isSignYourSelfFlow = false;
@@ -984,6 +988,7 @@ function PdfRequestFiles(props) {
                           ? replaceVar?.subject
                           : `${pdfDetails?.[0].ExtUserPtr.Name} has requested you to sign "${pdfDetails?.[0].Name}"`,
                         from: senderEmail,
+                        plan: plancode,
                         html: requestBody
                           ? replaceVar?.body
                           : "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /> </head>   <body> <div style='background-color: #f5f5f5; padding: 20px'=> <div   style=' box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background: white;padding-bottom: 20px;'> <div style='padding:10px 10px 0 10px'><img src=" +
@@ -1008,9 +1013,7 @@ function PdfRequestFiles(props) {
                             openSignUrl +
                             " target=_blank>here</a>.</p> </div></div></body> </html>"
                       };
-                      await axios.post(url, params, {
-                        headers: headers
-                      });
+                      await axios.post(url, params, { headers: headers });
                     } catch (error) {
                       console.log("error", error);
                     }
@@ -1173,10 +1176,7 @@ function PdfRequestFiles(props) {
       const img = new Image();
       img.src = defaultSignImg;
       if (img.complete) {
-        imgWH = {
-          width: img.width,
-          height: img.height
-        };
+        imgWH = { width: img.width, height: img.height };
       }
     }
     //get current signer placeholder position data
@@ -1216,7 +1216,15 @@ function PdfRequestFiles(props) {
     );
     const jsonSender = JSON.parse(senderUser);
     setIsDecline({ isDeclined: false });
-    const data = { IsDeclined: true, DeclineReason: reason };
+    const data = {
+      IsDeclined: true,
+      DeclineReason: reason,
+      DeclineBy: {
+        __type: "Pointer",
+        className: "_User",
+        objectId: jsonSender?.objectId
+      }
+    };
     setIsUiLoading(true);
 
     await axios
@@ -1236,10 +1244,7 @@ function PdfRequestFiles(props) {
       .then(async (result) => {
         const res = result.data;
         if (res) {
-          const currentDecline = {
-            currnt: "YouDeclined",
-            isDeclined: true
-          };
+          const currentDecline = { currnt: "YouDeclined", isDeclined: true };
           setIsDecline(currentDecline);
           setIsUiLoading(false);
           const params = {
@@ -1280,6 +1285,8 @@ function PdfRequestFiles(props) {
       })
       .catch((err) => {
         console.log("error updating field is decline ", err);
+        setIsUiLoading(false);
+        alert(t("something-went-wrong-mssg"));
       });
   };
   //function to add default signature for all requested placeholder of sign
@@ -1298,15 +1305,11 @@ function PdfRequestFiles(props) {
       x.signerObjId === signerObjectId ? { ...x, placeHolder: updatePlace } : x
     );
     setSignerPos(updatesignerPos);
-    setDefaultSignAlert({
-      isShow: false,
-      alertMessage: ""
-    });
+    setDefaultSignAlert({ isShow: false, alertMessage: "" });
   };
   const handleDontShow = (isChecked) => {
     setIsDontShow(isChecked);
   };
-  // console.log("signerpos", signerPos);
   //function to close tour and save tour status
   const closeRequestSignTour = async () => {
     setRequestSignTour(true);
@@ -1483,7 +1486,6 @@ function PdfRequestFiles(props) {
   const SendOtp = async () => {
     try {
       const params = { email: contact.email, docId: res.docId };
-
       const Otp = await axios.post(
         `${localStorage.getItem("baseUrl")}/functions/SendOTPMailV1`,
         params,
@@ -1521,10 +1523,7 @@ function PdfRequestFiles(props) {
           "Content-Type": "application/json",
           "X-Parse-Application-Id": parseId
         };
-        let body = {
-          email: contact.email,
-          otp: otp
-        };
+        let body = { email: contact.email, otp: otp };
         let user = await axios.post(url, body, { headers: headers });
         if (user.data.result === "Invalid Otp") {
           alert(t("invalid-otp"));
@@ -1556,9 +1555,7 @@ function PdfRequestFiles(props) {
           // document.getElementById("my_modal").close();
           setIsPublicContact(false);
           setIsPublicTemplate(false);
-          setIsLoading({
-            isLoad: false
-          });
+          setIsLoading({ isLoad: false });
           setDocumentId(res?.docId);
           getDocumentDetails(res?.docId);
         }
@@ -1574,13 +1571,37 @@ function PdfRequestFiles(props) {
     setLoading(false);
     setIsOtp(false);
     setOtp();
-    setContact({
-      name: "",
-      email: "",
-      phone: ""
-    });
+    setContact({ name: "", email: "", phone: "" });
   };
 
+  const clickOnZoomIn = () => {
+    onClickZoomIn(scale, zoomPercent, setScale, setZoomPercent);
+  };
+  const clickOnZoomOut = () => {
+    onClickZoomOut(zoomPercent, scale, setZoomPercent, setScale);
+  };
+  const handleDownloadBtn = async () => {
+    const url = pdfDetails?.[0]?.SignedUrl || pdfDetails?.[0]?.URL;
+    const name = pdfDetails?.[0]?.Name;
+    await fetchUrl(url, name);
+  };
+  const handleDeclineMssg = () => {
+    const user = pdfDetails[0]?.DeclineBy?.email;
+    return (
+      <div>
+        {t("decline-alert-3")}
+        <div className="mt-2">
+          {" "}
+          <span className="font-medium">{t("decline-by")}</span> : {user}
+        </div>
+        <div className="mt-2">
+          {" "}
+          <span className="font-medium">{t("reason")}</span> :{" "}
+          {pdfDetails[0]?.DeclineReason}{" "}
+        </div>
+      </div>
+    );
+  };
   return (
     <DndProvider backend={HTML5Backend}>
       <Title title={props.templateId ? "Public Sign" : "Request Sign"} />
@@ -1628,7 +1649,9 @@ function PdfRequestFiles(props) {
                       ? "none"
                       : "auto"
                 }}
-                className="relative op-card overflow-hidden flex flex-col md:flex-row justify-between bg-base-300"
+                className={`${
+                  props.templateId && "m-1 border-[0.5px] border-gray-300"
+                } relative op-card overflow-hidden flex flex-col md:flex-row justify-between bg-base-300`}
               >
                 {!requestSignTour &&
                   signerObjectId &&
@@ -1668,13 +1691,17 @@ function PdfRequestFiles(props) {
                 {/* this modal is used to show decline alert */}
                 <PdfDeclineModal
                   show={isDecline.isDeclined}
-                  headMsg={t("document-decline")}
+                  headMsg={
+                    pdfDetails[0]?.IsDeclined
+                      ? t("document-declined")
+                      : t("document-decline")
+                  }
                   bodyMssg={
                     isDecline.currnt === "Sure"
-                      ? t("decline-alert-2")
+                      ? t("decline-alert-1")
                       : isDecline.currnt === "YouDeclined"
-                        ? t("decline-alert-1")
-                        : isDecline.currnt === "another" && t("decline-alert-3")
+                        ? t("decline-alert-2")
+                        : isDecline.currnt === "another" && handleDeclineMssg()
                   }
                   footerMessage={isDecline.currnt === "Sure"}
                   declineDoc={declineDoc}
@@ -1685,6 +1712,8 @@ function PdfRequestFiles(props) {
                   show={isExpired}
                   headMsg={t("expired-doc-title")}
                   bodyMssg={t("expired-on-mssg", { expiredDate })}
+                  isDownloadBtn={true}
+                  handleDownloadBtn={handleDownloadBtn}
                 />
                 {!isEmailVerified && (
                   <VerifyEmail
@@ -1698,145 +1727,121 @@ function PdfRequestFiles(props) {
                     handleResend={handleResend}
                   />
                 )}
-
                 <ModalUi
                   isOpen={isPublicContact}
                   title={isOtp ? t("verify-email-1") : t("contact-details")}
-                  handleClose={() => {
-                    handleCloseOtp();
-                  }}
+                  handleClose={() => handleCloseOtp()}
                 >
                   <div className="h-full p-[20px]">
                     {isOtp ? (
                       <form onSubmit={VerifyOTP}>
-                        <div className="flex flex-col gap-2">
-                          <span>{t("get-otp-alert")}</span>
-                          <label className="op-input op-input-bordered flex items-center gap-2 ">
-                            <input
-                              type="number"
-                              name="otp"
-                              className="grow"
-                              placeholder={t("otp-placeholder")}
-                              onInvalid={(e) =>
-                                e.target.setCustomValidity(t("input-required"))
-                              }
-                              onInput={(e) => e.target.setCustomValidity("")}
-                              required
-                              value={otp}
-                              onChange={(e) => setOtp(e.target.value)}
-                              disabled={loading}
-                            />
+                        <div className="mb-[0.75rem]">
+                          <label className="block text-xs font-semibold mb-2">
+                            {t("get-otp-alert")}
+                            <span className="text-[13px] text-[red]"> *</span>
                           </label>
+                          <input
+                            type="number"
+                            name="otp"
+                            placeholder={t("otp-placeholder")}
+                            onInvalid={(e) =>
+                              e.target.setCustomValidity(t("input-required"))
+                            }
+                            onInput={(e) => e.target.setCustomValidity("")}
+                            required
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            disabled={loading}
+                            className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content w-full text-xs"
+                          />
                         </div>
-                        <div className="op-modal-action">
-                          <div className="flex gap-2">
-                            <button
-                              className="op-btn op-btn-ghost"
-                              onClick={() => {
-                                handleCloseOtp();
-                              }}
-                            >
-                              {t("cancel")}
-                            </button>
-                            <button
-                              className="op-btn op-btn-primary"
-                              disabled={loading}
-                            >
-                              {loading ? t("loading") : t("verify")}
-                            </button>
-                          </div>
+                        <div className="mt-6 flex justify-start gap-2">
+                          <button
+                            className="op-btn op-btn-primary"
+                            disabled={loading}
+                          >
+                            {loading ? t("loading") : t("verify")}
+                          </button>
+                          <button
+                            className="op-btn op-btn-ghost"
+                            onClick={() => handleCloseOtp()}
+                          >
+                            {t("cancel")}
+                          </button>
                         </div>
                       </form>
                     ) : (
-                      <form onSubmit={handlePublicUser}>
-                        <div className="flex flex-col gap-2">
-                          <label className="op-input op-input-bordered  flex items-center gap-2  ">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 16 16"
-                              fill="currentColor"
-                              className="w-4 h-4 opacity-70"
-                            >
-                              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
-                            </svg>
-                            <input
-                              type="text"
-                              className="grow"
-                              name="name"
-                              value={contact.name}
-                              onChange={handleInputChange}
-                              placeholder={t("name")}
-                              onInvalid={(e) =>
-                                e.target.setCustomValidity(t("input-required"))
-                              }
-                              onInput={(e) => e.target.setCustomValidity("")}
-                              required
-                              disabled={loading}
-                            />
+                      <form
+                        className="text-base-content p-2 mx-auto"
+                        onSubmit={handlePublicUser}
+                      >
+                        <div className="mb-[0.75rem]">
+                          <label className="block text-xs font-semibold mb-[5px]">
+                            {t("name")}
+                            <span className="text-[13px] text-[red]"> *</span>
                           </label>
-                          <label className="op-input op-input-bordered flex items-center gap-2 ">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 16 16"
-                              fill="currentColor"
-                              className="w-4 h-4 opacity-70"
-                            >
-                              <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z" />
-                              <path d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z" />
-                            </svg>
-                            <input
-                              type="email"
-                              className="grow"
-                              name="email"
-                              value={contact.email}
-                              onChange={handleInputChange}
-                              placeholder={t("email")}
-                              onInvalid={(e) =>
-                                e.target.setCustomValidity(t("input-required"))
-                              }
-                              onInput={(e) => e.target.setCustomValidity("")}
-                              required
-                              disabled={loading}
-                            />
-                          </label>
-
-                          <label className="op-input op-input-bordered flex items-center gap-2 ">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 16 16"
-                              fill="currentColor"
-                              className="w-4 h-4 opacity-70"
-                            >
-                              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
-                            </svg>
-                            <input
-                              value={contact.phone}
-                              onChange={handleInputChange}
-                              type="text"
-                              name="phone"
-                              className="grow"
-                              placeholder={t("phone")}
-                              disabled={loading}
-                            />
-                          </label>
+                          <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            value={contact.name}
+                            onChange={handleInputChange}
+                            onInvalid={(e) =>
+                              e.target.setCustomValidity(t("input-required"))
+                            }
+                            onInput={(e) => e.target.setCustomValidity("")}
+                            required
+                            disabled={loading}
+                            className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content w-full text-xs"
+                          />
                         </div>
-                        <div className="op-modal-action">
-                          <div className="flex gap-2">
-                            <button
-                              className="op-btn op-btn-ghost"
-                              onClick={() => {
-                                handleCloseOtp();
-                              }}
-                            >
-                              {t("close")}
-                            </button>
-                            <button
-                              className="op-btn op-btn-primary"
-                              disabled={loading}
-                            >
-                              {loading ? t("loading") : t("submit")}
-                            </button>
-                          </div>
+                        <div className="mb-[0.75rem]">
+                          <label className="block text-xs font-semibold mb-[5px]">
+                            {t("email")}
+                            <span className="text-[13px] text-[red]"> *</span>
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            value={contact.email}
+                            onChange={handleInputChange}
+                            onInvalid={(e) =>
+                              e.target.setCustomValidity(t("input-required"))
+                            }
+                            onInput={(e) => e.target.setCustomValidity("")}
+                            required
+                            disabled={loading}
+                            className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content w-full text-xs"
+                          />
+                        </div>
+                        <div className="mb-[0.75rem]">
+                          <label className="block text-xs font-semibold mb-[5px]">
+                            {t("phone")}
+                          </label>
+                          <input
+                            value={contact.phone}
+                            onChange={handleInputChange}
+                            type="text"
+                            name="phone"
+                            placeholder={t("phone-optional")}
+                            disabled={loading}
+                            className="op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content w-full text-xs"
+                          />
+                        </div>
+
+                        <div className="mt-6 flex justify-start gap-2">
+                          <button
+                            className="op-btn op-btn-primary"
+                            disabled={loading}
+                          >
+                            {loading ? t("loading") : t("submit")}
+                          </button>
+                          <button
+                            className="op-btn op-btn-ghost"
+                            onClick={() => handleCloseOtp()}
+                          >
+                            {t("close")}
+                          </button>
                         </div>
                       </form>
                     )}
@@ -1904,20 +1909,18 @@ function PdfRequestFiles(props) {
                 {/* pdf render view */}
                 <div className=" w-full md:w-[57%] flex mr-4">
                   <PdfZoom
-                    setScale={setScale}
-                    scale={scale}
-                    containerWH={containerWH}
-                    setZoomPercent={setZoomPercent}
-                    zoomPercent={zoomPercent}
+                    clickOnZoomIn={clickOnZoomIn}
+                    clickOnZoomOut={clickOnZoomOut}
+                    isDisableRotate={true}
                   />
                   <div className=" w-full md:w-[95%] ">
                     {/* this modal is used show this document is already sign */}
                     <ModalUi
                       isOpen={isCompleted.isModal}
                       title={t("document-signed")}
-                      handleClose={() => {
-                        setIsCompleted((prev) => ({ ...prev, isModal: false }));
-                      }}
+                      handleClose={() =>
+                        setIsCompleted((prev) => ({ ...prev, isModal: false }))
+                      }
                       reduceWidth={
                         !isCompleted?.message &&
                         "md:min-w-[440px] md:max-w-[400px]"
@@ -2049,15 +2052,12 @@ function PdfRequestFiles(props) {
                       currentSigner={currentSigner}
                       pdfUrl={pdfUrl}
                       alreadySign={alreadySign}
-                      totalZoomPercent={totalZoomPercent}
-                      setTotalZoomPercent={setTotalZoomPercent}
-                      setScale={setScale}
-                      scale={scale}
-                      pdfOriginalWH={pdfOriginalWH}
                       containerWH={containerWH}
-                      setZoomPercent={setZoomPercent}
-                      zoomPercent={zoomPercent}
                       isPublicTemplate={isPublicTemplate}
+                      clickOnZoomIn={clickOnZoomIn}
+                      clickOnZoomOut={clickOnZoomOut}
+                      isDisableRotate={true}
+                      templateId={props.templateId}
                     />
 
                     <div ref={divRef} data-tut="pdfArea" className="h-[95%]">
@@ -2091,7 +2091,6 @@ function PdfRequestFiles(props) {
                           divRef={divRef}
                           setIsResize={setIsResize}
                           isResize={isResize}
-                          setTotalZoomPercent={setTotalZoomPercent}
                           setScale={setScale}
                           scale={scale}
                           uniqueId={uniqueId}
@@ -2171,9 +2170,7 @@ function PdfRequestFiles(props) {
           <ModalUi
             isOpen={validateAlert}
             title={t("validation-alert")}
-            handleClose={() => {
-              setValidateAlert(false);
-            }}
+            handleClose={() => setValidateAlert(false)}
           >
             <div className="h-[100%] p-[20px]">
               <p>{t("validation-alert-1")}</p>
