@@ -1,6 +1,3 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/label-has-for */
 import React, { Component } from 'react';
 import { Form, ButtonToolbar, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import Icon from '../../Icons';
