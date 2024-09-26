@@ -468,10 +468,7 @@ const Forms = (props) => {
     setFormData({
       Name: "",
       Description: "",
-      Note:
-        props.title === "Sign Yourself"
-          ? "Note to myself"
-          : "Please review and sign this document",
+      Note:"",
       TimeToCompleteDays: 15,
       SendinOrder: "true",
       password: "",
@@ -733,7 +730,6 @@ const Forms = (props) => {
             <div className="text-xs mt-2">
               <label className="block">
                 {t("report-heading.Note")}
-                <span className="text-red-500 text-[13px]">*</span>
               </label>
               <input
                 name="Note"
@@ -744,7 +740,6 @@ const Forms = (props) => {
                   e.target.setCustomValidity(t("input-required"))
                 }
                 onInput={(e) => e.target.setCustomValidity("")}
-                required
               />
             </div>
             {props.title !== "New Template" && (

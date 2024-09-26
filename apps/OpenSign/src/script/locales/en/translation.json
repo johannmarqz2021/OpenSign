@@ -170,6 +170,7 @@
   },
   "file-type": "pdf, png, jpg, jpeg",
   "docx": "docx",
+  "certificate-type": "p12, pfx",
   "file-selected": "file selected",
   "template-title": "Template Title",
   "document-title": "Document Title",

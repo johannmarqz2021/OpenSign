@@ -41,7 +41,7 @@
   "upgrade-now": "Upgrade now",
   "upgrade-to": "Upgrade to",
   "plan": "Plan",
-  "subscribe-card-teamplan":"Unlock the full power of collaboration! Create unlimited organizations, teams, and hierarchies. Share templates seamlessly across teams and assign custom user roles. Elevate your workflow today!",
+  "subscribe-card-teamplan": "Unlock the full power of collaboration! Create unlimited organizations, teams, and hierarchies. Share templates seamlessly across teams and assign custom user roles. Elevate your workflow today!",
   "subscribe-card-plan": "Unlock premium features starting at just {{premiumPrice}}/month. Enjoy enhanced performance and only {{addonPrice}} per additional credit after your included premium credits.",
   "user-name-limit-char": "To have a username less than 8 character please subscribe",
   "tour-content": "Don't show this again",
@@ -96,7 +96,8 @@
       "Webhook": "Webhook",
       "Teams": "Teams",
       "Team-update-successfully": "Team Updated successfully.",
-      "Users": "Users"
+      "Users": "Users",
+      "Certificate": "Certificate"
     }
   },
   "dashboard-card": {
@@ -139,6 +140,7 @@
     "Email": "Email",
     "Phone": "Phone",
     "File": "File",
+    "Certificate": "Certificate",
     "Owner": "Owner",
     "Signers": "Signers",
     "Note": "Note",
@@ -151,7 +153,8 @@
     "Name": "Name",
     "Status": "Status",
     "created-date": "Created Date",
-    "Type": "Type"
+    "Type": "Type",
+    "expiration-date": "Expiration Date"
   },
   "report-help": {
     "Draft Documents": "These are documents you have started but have not finalized for sending.",
@@ -169,6 +172,7 @@
     "New Template": "New Template"
   },
   "file-type": "pdf, png, jpg, jpeg",
+  "certificate-type": "p12, pfx",
   "docx": "docx",
   "file-selected": "file selected",
   "template-title": "Template Title",
@@ -362,6 +366,8 @@
   "my-initials": "My Initials",
   "upload": "Upload",
   "initial-teb": "Initials",
+  "info-certificate": "The .p12 or pfx electronic certificate not only ensures the integrity of the document when used as an electronic signature, but also allows automating repetitive and intensive processes. By using this certificate, users not only guarantee the authenticity of their digital documents, but also streamline and optimize workflows that involve repetitive tasks. The certificate facilitates the secure and efficient execution of these processes, reducing manual effort and increasing productivity.",
+  "info-date-expiration": "It is of vital importance to monitor the expiration date of an electronic certificate. The expiration of a certificate means that it is no longer valid or reliable for authenticating the identity of the holder and ensuring the integrity of the data. Lack of control over the expiration date could lead to the use of outdated certificates, which puts the security of transactions and trust in the system at risk. Maintaining strict tracking and control of the expiration date of electronic certificates ensures that the necessary steps are taken to renew or replace them in a timely manner, thus avoiding service interruptions and protecting the confidentiality and integrity of the information.",
   "signature-tab": "Signature",
   "your-signature": "Your signature",
   "copy-title": "Copy widget to",
@@ -593,7 +599,22 @@
     "Recently sent for signatures": "This is a list of documents you've sent to other parties for signature.",
     "Drafts": "This are documents you have started but have not finalized for sending.",
     "public-template": "This video demonstrates how to set up your personalized public profile, such as ‘https://opensign.me/your-username’. You’ll also learn how to customize your tagline and make your templates available for public signing."
-   },
+  },
+  "validations": {
+    "certificate": {
+      "required": {
+        "date": "You must select a date",
+        "file": "You must add a file",
+        "password": "The password field is required",
+        "passwordConfirmation": "El campo confirmar contraseña es requerido"
+      },
+      "confirm": {
+        "password": "Las contraseñas no coinciden"
+      }
+    },
+    "min-6": "The field must have more than 6 characters",
+    "file-type": "Only files are allowed {{fileType}}"
+  },
   "enter-email-plaholder": "Add an email address and hit enter",
   "success-email-alert": "Email sent successfully!",
   "expired-doc-title": "Expired Document",
@@ -614,28 +635,27 @@
   "select-date-format": "Select a date format",
   "quantity-of-credits": "Quantity of premium credits",
   "remaining-credits": "Premium credits available:",
-  "remaining-credits-help":"Use premium credits for API document signing, bulk sending, or embedding OpenSign integration on your website. You have {{allowedcredits}} included credits and {{addoncredits}} additional purchased credits remaining.",
+  "remaining-credits-help": "Use premium credits for API document signing, bulk sending, or embedding OpenSign integration on your website. You have {{allowedcredits}} included credits and {{addoncredits}} additional purchased credits remaining.",
   "additional-credits": "Please purchase premium credits",
   "quota-err-quicksend": "Quota Reached, You don't have enough credits.",
   "buy-credits": "Buy Premium Credits",
-  "rotate-right":"Rotate right",
-  "rotate-left":"Rotate left",
-  "rotate-alert-mssg":"All widgets on this page will be lost. Are you sure you want to proceed?",
-  "templateid":"Template-Id",
-  "bulk-send-subcription-alert":"Please upgrade to Professional or Team plan to use bulk send.",
-  "generate-test-token":"Generate Test Token",
-  "regenerate-test-token":"Regenerate Test Token",
-  "help-test-token":"This token can be used to test the APIs at the https://sandbox.opensignlabs.com/api/v1 endpoint, allowing you to conduct unlimited document signatures. Please note that the sandbox API will sign your documents with self-signed certificates, which may not be recognized as valid by Adobe. Once you’ve completed your testing, you can upgrade to one of our paid plans to generate a production token.",
-  "help-api-token":"This token can be used to access the production APIs at the {{origin}}/api/v1 endpoint. It can only be generated on one of our paid plans.",
-  "reason":"Reason",
-  "decline-by":"Declined/revoked by",
+  "rotate-right": "Rotate right",
+  "rotate-left": "Rotate left",
+  "rotate-alert-mssg": "All widgets on this page will be lost. Are you sure you want to proceed?",
+  "templateid": "Template-Id",
+  "bulk-send-subcription-alert": "Please upgrade to Professional or Team plan to use bulk send.",
+  "generate-test-token": "Generate Test Token",
+  "regenerate-test-token": "Regenerate Test Token",
+  "help-test-token": "This token can be used to test the APIs at the https://sandbox.opensignlabs.com/api/v1 endpoint, allowing you to conduct unlimited document signatures. Please note that the sandbox API will sign your documents with self-signed certificates, which may not be recognized as valid by Adobe. Once you’ve completed your testing, you can upgrade to one of our paid plans to generate a production token.",
+  "help-api-token": "This token can be used to access the production APIs at the {{origin}}/api/v1 endpoint. It can only be generated on one of our paid plans.",
+  "reason": "Reason",
+  "decline-by": "Declined/revoked by",
   "document-declined": "Document declined",
-  "quota-mail-info-head":"Monthly request signatures email limit",
+  "quota-mail-info-head": "Monthly request signatures email limit",
   "quota-mail-info": "You can send upto 15 signature request emails every month. Upgrade now to send unlimited signing requests directly.",
   "quota-mail": "You've reached your limit of 15 signature request emails for this month. Upgrade now to continue sending emails directly.",
-  "quota-mail-tip":"Tip: You can still sign <1>unlimited documents</1> by manually sharing the signing request links.",
-  "quota-mail-head":"Quota Reached",
-  "unauthorized-modal":"You don't have permission to perform this action, please contact {{adminName}}<{{adminEmail}}>.",
-  "sent-this-month":"Sent this month"
-
+  "quota-mail-tip": "Tip: You can still sign <1>unlimited documents</1> by manually sharing the signing request links.",
+  "quota-mail-head": "Quota Reached",
+  "unauthorized-modal": "You don't have permission to perform this action, please contact {{adminName}}<{{adminEmail}}>.",
+  "sent-this-month": "Sent this month"
 }

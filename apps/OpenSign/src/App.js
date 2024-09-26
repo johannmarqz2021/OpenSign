@@ -35,6 +35,8 @@ const GenerateToken = lazy(() => import("./pages/GenerateToken"));
 const Webhook = lazy(() => import("./pages/Webhook"));
 const AddAdmin = lazy(() => import("./pages/AddAdmin"));
 const UpdateExistUserAdmin = lazy(() => import("./pages/UpdateExistUserAdmin"));
+const ManageCertificate = lazy(() => import("./pages/ManageCertificate"));
+
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
 const AppLoader = () => {
@@ -153,6 +155,10 @@ function App() {
               <Route
                 path="/managesign"
                 element={<LazyPage Page={ManageSign} />}
+              />
+              <Route
+                path="/managecertificate"
+                element={<LazyPage Page={ManageCertificate} />}
               />
               <Route
                 path="/template/:templateId"

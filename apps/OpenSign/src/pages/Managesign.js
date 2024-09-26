@@ -81,7 +81,6 @@ const ManageSign = () => {
     setSignature("");
     setIsValue(false);
   };
-
   const handleClearInitials = () => {
     if (initailsRef.current) {
       initailsRef.current.clear();
@@ -105,7 +104,7 @@ const ManageSign = () => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const isUrl = image.includes("https");
+    const isUrl = image?.includes("https");
 
     if (!isvalue) {
       setWarning(true);

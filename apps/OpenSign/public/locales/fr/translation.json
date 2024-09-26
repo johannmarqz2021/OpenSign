@@ -42,7 +42,7 @@
   "upgrade-to": "Mettre à niveau vers",
   "pro": "PRO",
   "plan": "Offre",
-  "subscribe-card-teamplan":"Libérez toute la puissance de la collaboration ! Créez un nombre illimité d'organisations, d'équipes et de hiérarchies. Partagez des modèles de manière transparente entre les équipes et attribuez des rôles d'utilisateur personnalisés. Améliorez votre flux de travail dès aujourd'hui !",
+  "subscribe-card-teamplan": "Libérez toute la puissance de la collaboration ! Créez un nombre illimité d'organisations, d'équipes et de hiérarchies. Partagez des modèles de manière transparente entre les équipes et attribuez des rôles d'utilisateur personnalisés. Améliorez votre flux de travail dès aujourd'hui !",
   "subscribe-card-plan": "Débloquez des fonctionnalités premium à partir de seulement {{premiumPrice}}/mois. Bénéficiez de performances améliorées et de seulement {{addonPrice}} par crédit supplémentaire après vos crédits premium inclus.",
   "user-name-limit-char": "Pour avoir un nom d'utilisateur de moins de 8 caractères s'il vous plaît s'abonner",
   "tour-content": "Ne plus afficher",
@@ -96,7 +96,8 @@
       "Webhook": "Webhook",
       "Teams": "Équipe",
       "Team-update-successfully": "Équipe mise à jour avec succès.",
-      "Users": "Utilisateurs"
+      "Users": "Utilisateurs",
+      "Certificate": "Certificat"
     }
   },
   "dashboard-card": {
@@ -124,6 +125,7 @@
     "Email": "E-mail",
     "Phone": "Téléphone",
     "File": "Fichier",
+    "Certificate": "Certificat",
     "Owner": "Propriétaire",
     "Signers": "Signataires",
     "Note": "Note",
@@ -136,7 +138,8 @@
     "Name": "Nom",
     "Status": "Statut",
     "created-date": "Date de création",
-    "Type": "Saisir"
+    "Type": "Saisir",
+    "expiration-date": "Date d'expiration"
   },
   "btnLabel": {
     "sign": "Signer",
@@ -168,6 +171,7 @@
     "New Template": "Nouveau modèle"
   },
   "file-type": "pdf, png, jpg, jpeg",
+  "certificate-type": "p12, pfx",
   "docx": "docx",
   "file-selected": "fichier sélectionné",
   "template-title": "Titre du modèle",
@@ -215,6 +219,8 @@
   "clear": "Vider",
   "upload-signature/Image": "télécharger-signature/Image",
   "initials": "Initiales",
+  "info-certificate": "Le certificat électronique .p12 ou pfx ne garantit pas seulement l'intégrité du document lorsqu'il est utilisé comme signature électronique, mais permet également d'automatiser les processus répétitifs et intensifs. En utilisant ce certificat, les utilisateurs garantissent non seulement l'authenticité de leurs documents numériques, mais ils simplifient et optimisent également les flux de travail impliquant des tâches répétitives. Le certificat facilite l'exécution sécurisée et efficace de ces processus, réduisant ainsi l'effort manuel et augmentant la productivité.",
+  "info-date-expiration": "Il est d'une importance vitale de surveiller la date d'expiration d'un certificat électronique. L'expiration d'un certificat signifie qu'il n'est plus valide ni fiable pour authentifier l'identité du titulaire et garantir l'intégrité des données. L'absence de contrôle de la date d'expiration pourrait conduire à l'utilisation de certificats obsolètes, ce qui compromet la sécurité des transactions et la confiance dans le système. Un suivi et un contrôle stricts de la date d'expiration des certificats électroniques garantissent que les mesures nécessaires sont prises pour les renouveler ou les remplacer à temps, évitant ainsi les interruptions de service et protégeant la confidentialité et l'intégrité des informations.",
   "API": "API",
   "api-token": "Jeton API",
   "regenerate-token": "Régénérer en direct jeton",
@@ -593,6 +599,21 @@
     "Drafts": "Il s'agit de documents que vous avez commencés mais que vous n'avez pas finalisés pour envoi.",
     "public-template": "Cette vidéo montre comment configurer votre profil public personnalisé, tel que 'https://opensign.me/your-username'. Vous apprendrez également comment personnaliser votre slogan et rendre vos modèles disponibles pour la signature publique."
   },
+  "validations": {
+    "certificate": {
+      "required": {
+        "date": "Vous devez sélectionner une date",
+        "file": "Vous devez ajouter un fichier",
+        "password": "Le champ mot de passe est requis",
+        "passwordConfirmation": "El campo confirmar contraseña es requerido"
+      },
+      "confirm": {
+        "password": "Las contraseñas no coinciden"
+      }
+    },
+    "min-6": "Le champ doit contenir plus de 6 caractères",
+    "file-type": "Seuls les fichiers sont autorisés {{fileType}}"
+  },
   "enter-email-plaholder": "Ajoutez une adresse email et appuyez sur Entrée",
   "success-email-alert": "E-mail envoyé avec succès!",
   "expired-doc-title": "Document expiré",
@@ -611,30 +632,29 @@
   "Add-seats": "Ajouter des sièges",
   "format": "format",
   "select-date-format": "Sélectionnez un format de date",
-  "quantity-of-credits":"Quantité de crédits de prime",
-  "remaining-credits":"Crédits premium disponibles :",
-  "additional-credits":"Veuillez acheter des crédits premium",
-  "remaining-credits-help":"Utilisez des crédits premium pour la signature de documents API, l'envoi groupé ou l'intégration d'OpenSign sur votre site Web. Il vous reste {{allowedcredits}} crédits inclus et {{addoncredits}} crédits achetés supplémentaires.",
+  "quantity-of-credits": "Quantité de crédits de prime",
+  "remaining-credits": "Crédits premium disponibles :",
+  "additional-credits": "Veuillez acheter des crédits premium",
+  "remaining-credits-help": "Utilisez des crédits premium pour la signature de documents API, l'envoi groupé ou l'intégration d'OpenSign sur votre site Web. Il vous reste {{allowedcredits}} crédits inclus et {{addoncredits}} crédits achetés supplémentaires.",
   "quota-err-quicksend": "Quota atteint, vous n'avez pas assez de crédits.",
   "buy-credits": "Acheter des crédits premium",
-  "rotate-right"  :"Faire pivoter à droite",
-  "rotate-left" :"Faire pivoter à gauche",
-  "rotate-alert-mssg" :"Tous les widgets de cette page seront perdus. Êtes-vous sûr de vouloir continuer ?",
-  "templateid":"ID de modèle",
-  "bulk-send-subcription-alert":"Veuillez passer au forfait Professionnel ou Équipe pour utiliser Quicksend.",
+  "rotate-right": "Faire pivoter à droite",
+  "rotate-left": "Faire pivoter à gauche",
+  "rotate-alert-mssg": "Tous les widgets de cette page seront perdus. Êtes-vous sûr de vouloir continuer ?",
+  "templateid": "ID de modèle",
+  "bulk-send-subcription-alert": "Veuillez passer au forfait Professionnel ou Équipe pour utiliser Quicksend.",
   "generate-test-token": "Générer jeton de test",
-  "regenerate-test-token":"Régénérer le jeton de test",
-  "help-test-token":"Ce jeton peut être utilisé pour tester les API au niveau du point de terminaison https://sandbox.opensignlabs.com/api/v1, vous permettant ainsi d'effectuer un nombre illimité de signatures de documents. Veuillez noter que l'API sandbox signera vos documents avec des certificats auto-signés, qui peuvent ne pas être reconnus comme valides par Adobe. Une fois vos tests terminés, vous pouvez passer à l’un de nos forfaits payants pour générer un jeton de production.",
-  "help-api-token":"Ce jeton peut être utilisé pour accéder aux API de production au point de terminaison {{origin}}/api/v1. Il ne peut être généré que sur l'un de nos forfaits payants.",
-  "reason" :"Raison",
-  "decline-by" :"Refusé/révoqué par",
-  "document-declined":"document refusé",
-  "quota-mail-info-head":"Limite mensuelle d'e-mails de signatures de demandes",
+  "regenerate-test-token": "Régénérer le jeton de test",
+  "help-test-token": "Ce jeton peut être utilisé pour tester les API au niveau du point de terminaison https://sandbox.opensignlabs.com/api/v1, vous permettant ainsi d'effectuer un nombre illimité de signatures de documents. Veuillez noter que l'API sandbox signera vos documents avec des certificats auto-signés, qui peuvent ne pas être reconnus comme valides par Adobe. Une fois vos tests terminés, vous pouvez passer à l’un de nos forfaits payants pour générer un jeton de production.",
+  "help-api-token": "Ce jeton peut être utilisé pour accéder aux API de production au point de terminaison {{origin}}/api/v1. Il ne peut être généré que sur l'un de nos forfaits payants.",
+  "reason": "Raison",
+  "decline-by": "Refusé/révoqué par",
+  "document-declined": "document refusé",
+  "quota-mail-info-head": "Limite mensuelle d'e-mails de signatures de demandes",
   "quota-mail-info": "Vous pouvez envoyer jusqu'à 15 e-mails de demande de signature chaque mois. Mettez à niveau maintenant pour envoyer directement des demandes de signature illimitées.",
   "quota-mail": "Vous avez atteint votre limite de 15 e-mails de demande de signature pour ce mois. Mettez à niveau maintenant pour continuer à envoyer des e-mails directement.",
-  "quota-mail-tip-tip":"Astuce : Vous pouvez toujours signer un nombre <1>illimité de documents</1> en partageant manuellement les liens de demande de signature.",
-  "quota-mail-head":"Quota atteint",
-  "unauthorized-modal":"Vous n'êtes pas autorisé à effectuer cette action, veuillez contacter {{adminName}}<{{adminEmail}}>.",
-  "sent-this-month":"envoyé ce mois-ci"
-
+  "quota-mail-tip-tip": "Astuce : Vous pouvez toujours signer un nombre <1>illimité de documents</1> en partageant manuellement les liens de demande de signature.",
+  "quota-mail-head": "Quota atteint",
+  "unauthorized-modal": "Vous n'êtes pas autorisé à effectuer cette action, veuillez contacter {{adminName}}<{{adminEmail}}>.",
+  "sent-this-month": "envoyé ce mois-ci"
 }

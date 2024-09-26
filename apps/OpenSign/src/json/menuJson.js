@@ -140,6 +140,14 @@ const sidebarList = [
         objectId: "managesign"
       },
       {
+        icon: "fa-light fa-award",
+        title: "Certificate",
+        target: "_self",
+        pageType: "",
+        description: "",
+        objectId: "managecertificate"
+      },
+      {
         icon: "fa-light fa-key",
         title: "API Token",
         target: "_self",
