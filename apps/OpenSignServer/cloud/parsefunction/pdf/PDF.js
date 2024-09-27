@@ -359,16 +359,39 @@ async function PDF(req) {
         } else {
           //  `pdflibAddPlaceholder` is used to add code of only digitial sign without widget (signyourself)
           const pdfDoc = await PDFDocument.load(PdfBuffer);
+          const pdfWithPlaceholderBytes = await pdfDoc.save();
+          const doc = { ..._resDoc, AuditTrail: updateAuditTrail };
+          const certificate = await GenerateCertificate(doc);
+          
+          const mergedPdf = await PDFDocument.create();
+          const [pdf1, pdf2] = await Promise.all([
+            PDFDocument.load(pdfWithPlaceholderBytes),
+            PDFDocument.load(certificate),
+          ]);
+          
+          const copiedPages1 = await mergedPdf.copyPages(pdf1, pdf1.getPageIndices());
+          const copiedPages2 = await mergedPdf.copyPages(pdf2, pdf2.getPageIndices());
+          
+          copiedPages1.forEach((page) => mergedPdf.addPage(page));
+          copiedPages2.forEach((page) => mergedPdf.addPage(page));
+          
+          const mergedPdfBytes = await mergedPdf.save();
+          PdfBuffer = Buffer.from(mergedPdfBytes);
+          
+          // Ahora agregamos el placeholder después de combinar los PDFs
+          const finalPdfDoc = await PDFDocument.load(PdfBuffer);
+          
           pdflibAddPlaceholder({
-            pdfDoc: pdfDoc,
+            pdfDoc: finalPdfDoc,
             reason: 'Digitally signed by OpenSign for ' + username + ' <' + userEmail + '>',
             location: 'n/a',
             name: eSignName,
             contactInfo: eSigncontact,
             signatureLength: 15000,
           });
-          const pdfWithPlaceholderBytes = await pdfDoc.save();
-          PdfBuffer = Buffer.from(pdfWithPlaceholderBytes);
+          
+          const finalPdfBytes = await finalPdfDoc.save();
+          PdfBuffer = Buffer.from(finalPdfBytes);
         }
         //`new signPDF` create new instance of pdfBuffer and p12Buffer
         const OBJ = new SignPdf();
