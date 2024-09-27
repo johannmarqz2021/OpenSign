@@ -68,7 +68,11 @@ const makeEmail = async (to, from, subject, html, url, pdfName) => {
           type: 'application/pdf',
           path: './exports/certificate.pdf',
         };
-        attachments = [file, certificate];
+        if (fs.existsSync(certificate.path)) {
+          attachments = [file, certificate];
+        } else {
+          attachments = [file];
+        }
       } catch (err) {
         attachments = [file];
         console.log('Err in read certificate sendmailv3', err);
@@ -143,6 +147,14 @@ export default async function sendMailGmailProvider(_extRes, template) {
         },
       });
       console.log('gmail provider res: ', response?.status);
+      const certificatePath = './exports/certificate.pdf'
+      if (fs.existsSync(certificatePath)) {
+        try {
+          fs.unlinkSync(certificatePath);
+        } catch (err) {
+          console.log('Err in unlink certificate sendmailgmail provider');
+        }
+      }
       return { code: 200, message: 'Email sent successfully' };
     } catch (error) {
       console.error('Error sending email:', error);

@@ -74,6 +74,7 @@ async function sendMail(document, sessionToken) {
       const orgName = document.ExtUserPtr.Company ? document.ExtUserPtr.Company : '';
       const themeBGcolor = '#47a3ad';
       let params = {
+        mailProvider: document?.ExtUserPtr?.active_mail_adapter || '',
         extUserId: document.ExtUserPtr.objectId,
         recipient: objectId ? existSigner?.Email : signerMail[i].email,
         subject: `${document.ExtUserPtr.Name} has requested you to sign "${document.Name}"`,
@@ -199,6 +200,7 @@ export default async function createBatchDocs(request) {
                 TimeToCompleteDays: x.TimeToCompleteDays || 15,
                 OriginIp: Ip,
                 DocSentAt: { __type: 'Date', iso: isoDate },
+                IsEnableOTP: x?.IsEnableOTP || false,
               },
             };
           });

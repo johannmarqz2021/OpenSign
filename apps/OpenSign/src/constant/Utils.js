@@ -708,7 +708,8 @@ export const createDocument = async (
       Signers: signers,
       SendinOrder: Doc?.SendinOrder || false,
       AutomaticReminders: Doc?.AutomaticReminders || false,
-      RemindOnceInEvery: parseInt(Doc?.RemindOnceInEvery || 5)
+      RemindOnceInEvery: parseInt(Doc?.RemindOnceInEvery || 5),
+      IsEnableOTP: Doc?.IsEnableOTP || false
     };
 
     try {
@@ -1741,9 +1742,7 @@ export const contactBook = async (objectId) => {
 
 //function for getting document details from contract_Documents class
 export const contractDocument = async (documentId) => {
-  const data = {
-    docId: documentId
-  };
+  const data = { docId: documentId };
   const documentDeatils = await axios
     .post(`${localStorage.getItem("baseUrl")}functions/getDocument`, data, {
       headers: {
@@ -1936,7 +1935,11 @@ export const getAppLogo = async () => {
       }
     } catch (err) {
       console.log("err in getlogo ", err);
-      return { logo: appInfo.applogo, user: "exist" };
+      if (err?.message?.includes("valid JSON")) {
+        return { logo: appInfo.applogo, user: "exist", error: "invalid_json" };
+      } else {
+        return { logo: appInfo.applogo, user: "exist" };
+      }
     }
   }
 };
@@ -2039,30 +2042,32 @@ export const fetchUrl = async (url, pdfName) => {
     console.error("Error downloading the file:", error);
   }
 };
-//handle download signed pdf
-export const handleDownloadPdf = async (
-  pdfDetails,
-  pdfUrl,
-  setIsDownloading
-) => {
-  const pdfName = pdfDetails[0] && pdfDetails[0].Name;
-  setIsDownloading("pdf");
-  try {
-    // const url = await Parse.Cloud.run("getsignedurl", { url: pdfUrl });
-    const axiosRes = await axios.post(
-      `${localStorage.getItem("baseUrl")}/functions/getsignedurl`,
-      { url: pdfUrl },
-      {
-        headers: {
-          "content-type": "Application/json",
-          "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
-          "X-Parse-Session-Token": localStorage.getItem("accesstoken")
-        }
+export const getSignedUrl = async (pdfUrl, docId) => {
+  //use only axios here due to public template sign
+  const axiosRes = await axios.post(
+    `${localStorage.getItem("baseUrl")}/functions/getsignedurl`,
+    { url: pdfUrl, docId: docId || "" },
+    {
+      headers: {
+        "content-type": "Application/json",
+        "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+        "X-Parse-Session-Token": localStorage.getItem("accesstoken")
       }
-    );
-    const url = axiosRes.data.result;
+    }
+  );
+  const url = axiosRes.data.result;
+  return url;
+};
+//handle download signed pdf
+export const handleDownloadPdf = async (pdfDetails, setIsDownloading) => {
+  const pdfName = pdfDetails[0] && pdfDetails[0]?.Name;
+  const pdfUrl = pdfDetails?.[0]?.SignedUrl || pdfDetails?.[0]?.URL;
+  setIsDownloading && setIsDownloading("pdf");
+  const docId = !pdfDetails?.[0]?.IsEnableOTP ? pdfDetails?.[0]?.objectId : "";
+  try {
+    const url = await getSignedUrl(pdfUrl, docId);
     await fetchUrl(url, pdfName);
-    setIsDownloading("");
+    setIsDownloading && setIsDownloading("");
   } catch (err) {
     console.log("err in getsignedurl", err);
     setIsDownloading("");
@@ -2075,16 +2080,22 @@ export const sanitizeFileName = (pdfName) => {
   return pdfName.replace(/ /g, "_");
 };
 //function for print digital sign pdf
-export const handleToPrint = async (event, pdfUrl, setIsDownloading) => {
+export const handleToPrint = async (
+  event,
+  pdfUrl,
+  setIsDownloading,
+  pdfDetails
+) => {
   event.preventDefault();
   setIsDownloading("pdf");
+  const docId = !pdfDetails?.[0]?.IsEnableOTP ? pdfDetails?.[0]?.objectId : "";
   try {
     // const url = await Parse.Cloud.run("getsignedurl", { url: pdfUrl });
     //`localStorage.getItem("baseUrl")` is also use in public-profile flow for public-sign
     //if we give this `appInfo.baseUrl` as a base url then in public-profile it will create base url of it's window.location.origin ex- opensign.me which is not base url
     const axiosRes = await axios.post(
       `${localStorage.getItem("baseUrl")}/functions/getsignedurl`,
-      { url: pdfUrl },
+      { url: pdfUrl, docId: docId },
       {
         headers: {
           "content-type": "Application/json",
@@ -2124,13 +2135,18 @@ export const handleToPrint = async (event, pdfUrl, setIsDownloading) => {
 //handle download signed pdf
 export const handleDownloadCertificate = async (
   pdfDetails,
-  setIsDownloading
+  setIsDownloading,
+  isZip
 ) => {
   if (pdfDetails?.length > 0 && pdfDetails[0]?.CertificateUrl) {
     try {
       await fetch(pdfDetails[0] && pdfDetails[0]?.CertificateUrl);
       const certificateUrl = pdfDetails[0] && pdfDetails[0]?.CertificateUrl;
-      saveAs(certificateUrl, `Certificate_signed_by_OpenSign™.pdf`);
+      if (isZip) {
+        return certificateUrl;
+      } else {
+        saveAs(certificateUrl, `Certificate_signed_by_OpenSign™.pdf`);
+      }
     } catch (err) {
       console.log("err in download in certificate", err);
     }
@@ -2156,7 +2172,13 @@ export const handleDownloadCertificate = async (
         if (doc?.CertificateUrl) {
           await fetch(doc?.CertificateUrl);
           const certificateUrl = doc?.CertificateUrl;
-          saveAs(certificateUrl, `Certificate_signed_by_OpenSign™.pdf`);
+          if (isZip) {
+            setIsDownloading("");
+            return certificateUrl;
+          } else {
+            saveAs(certificateUrl, `Certificate_signed_by_OpenSign™.pdf`);
+          }
+
           setIsDownloading("");
         } else {
           setIsDownloading("certificate");
@@ -2456,3 +2478,45 @@ export const handleRotateWarning = (signerPos, pageNumber) => {
     return false;
   }
 };
+
+// `generateTitleFromFilename` to generate Title of document from file name
+export function generateTitleFromFilename(filename) {
+  try {
+    // Step 1: Trim whitespace
+    let title = filename.trim();
+
+    // Step 2: Remove the file extension (everything after the last '.')
+    const lastDotIndex = title.lastIndexOf(".");
+    if (lastDotIndex > 0) {
+      title = title.substring(0, lastDotIndex);
+    }
+
+    // Step 3: Replace special characters (except Unicode letters, digits, spaces, and hyphens)
+    title = title.replace(/[^\p{L}\p{N}\s-]/gu, " ");
+
+    // Step 4: Replace multiple spaces with a single space
+    title = title.replace(/\s+/g, " ");
+
+    // Step 5: Capitalize first letter of each word (Title Case), handling Unicode characters
+    title = title.replace(
+      /\p{L}\S*/gu,
+      (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    );
+
+    // Step 6: Restrict length of title (optional, let's say 100 characters)
+    if (title.length > 100) {
+      title = title.substring(0, 100).trim();
+    }
+
+    // Step 7: Handle empty or invalid title by falling back to "Untitled Document"
+    if (!title || title.length === 0) {
+      return "Untitled Document";
+    }
+
+    return title;
+  } catch (error) {
+    // Handle unexpected errors gracefully by returning a default title
+    console.error("Error generating title from filename:", error);
+    return "Untitled Document";
+  }
+}

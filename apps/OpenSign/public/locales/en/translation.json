@@ -154,7 +154,8 @@
     "Status": "Status",
     "created-date": "Created Date",
     "Type": "Type",
-    "expiration-date": "Expiration Date"
+    "expiration-date": "Expiration Date",
+    "Logs": "Logs"
   },
   "report-help": {
     "Draft Documents": "These are documents you have started but have not finalized for sending.",
@@ -578,9 +579,10 @@
     "pdf-request-file-5": "You can click 'Auto Sign All' to automatically sign at all the locations meant to be signed by you. Make sure that you review the document properly before you click this button .",
     "placeholder-sign-1": "Select a recipient from this list to add a place-holder where he is supposed to sign.The placeholder will appear in the same colour as the recipient name once you drop it on the document.",
     "placeholder-sign-2": "Clicking 'Add recipients' button will allow you to add more signers.",
-    "placeholder-sign-3": "Drag or click on a field to add it to the document.",
-    "placeholder-sign-4": "The PDF content area already displays the template's existing placeholders. For your convenience, these placeholders will match the color of the recipient's name, making them easily identifiable.",
-    "placeholder-sign-5": "Clicking 'Send' will save the document. In the next step you can customize the emails to be sent out to the recipients or copy the signing links and share those with the recipients yourself.",
+    "placeholder-sign-3": "Click this button to add more recipients/signers to the document.",
+    "placeholder-sign-4": "Drag or click on a field to add it to the document.",
+    "placeholder-sign-5": "The PDF content area already displays the template's existing placeholders. For your convenience, these placeholders will match the color of the recipient's name, making them easily identifiable.",
+    "placeholder-sign-6": "Clicking 'Send' will save the document. In the next step you can customize the emails to be sent out to the recipients or copy the signing links and share those with the recipients yourself.",
     "report-1": "Click the 'Add' button to create a new template. Templates are reusable documents designed to quickly generate new documents with the same structure and varying signers. For example, an HR template for onboarding could have predefined roles like ‘HR Manager’ and ‘New Employee’. Each time you use the template, you can assign the ‘New Employee’ role to different incoming staff members, while the ‘HR Manager’ role remains constant, facilitating a seamless onboarding process for each recruit. ",
     "redirect": "Click the 'Use' button to create a new document from an existing template.",
     "bulksend": "To quickly create and send multiple documents using an existing template, click the 'Quick Send' button.",
@@ -654,8 +656,26 @@
   "quota-mail-info-head": "Monthly request signatures email limit",
   "quota-mail-info": "You can send upto 15 signature request emails every month. Upgrade now to send unlimited signing requests directly.",
   "quota-mail": "You've reached your limit of 15 signature request emails for this month. Upgrade now to continue sending emails directly.",
-  "quota-mail-tip": "Tip: You can still sign <1>unlimited documents</1> by manually sharing the signing request links.",
-  "quota-mail-head": "Quota Reached",
-  "unauthorized-modal": "You don't have permission to perform this action, please contact {{adminName}}<{{adminEmail}}>.",
-  "sent-this-month": "Sent this month"
+  "quota-mail-tip":"Tip: You can still sign <1>unlimited documents</1> by manually sharing the signing request links.",
+  "quota-mail-head":"Quota Reached",
+  "unauthorized-modal":"You don't have permission to perform this action, please contact {{adminEmail}}.",
+  "sent-this-month":"Sent this month",
+  "available-seats":"Available seats",
+  "buy-users":"Buy more users",
+  "isenable-otp": "Enable OTP verification",
+  "isenable-otp-help": {
+    "p1": "Would you like to enable the verification process using a one-time password (OTP)?",
+    "p2": "Selecting this option will enable OTP verification. Users will receive a verification code via email, which they must enter to sign the document.",
+    "p3": "Selecting this option will disable OTP verification, allowing users to sign the document directly without additional steps.",
+    "p4": "Please choose the option that best suits your document signing requirements."
+  },
+  "advanced-options":"Advanced options",
+  "hide-advanced-options":"Hide Advanced options",
+  "download-files":"Download files",
+  "download-pdf":"Download Pdf",
+  "pdf-certificate":"Download Pdf + Certificate",
+  "document-logs":"Document logs",
+  "server-down": "Unable to connect to the OpenSign server. If you are self-hosting OpenSign, please ensure that all the steps in the documentation have been followed correctly. If you're running OpenSign locally, you might be accessing it through an incorrect port number.",
+  "admin-exists": "Admin already exists. Please login to the application using admin credentials in order to manage users."
+
 }

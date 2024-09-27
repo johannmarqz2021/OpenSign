@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { handleDownloadPdf, handleToPrint } from "../../constant/Utils";
+import { handleToPrint } from "../../constant/Utils";
 import { themeColor, emailRegex } from "../../constant/const";
 import Loader from "../../primitives/Loader";
 import ModalUi from "../../primitives/ModalUi";
@@ -15,7 +15,8 @@ function EmailComponent({
   sender,
   setIsAlert,
   extUserId,
-  activeMailAdapter
+  activeMailAdapter,
+  setIsDownloadModal
 }) {
   const { t } = useTranslation();
   const [emailList, setEmailList] = useState([]);
@@ -29,6 +30,28 @@ function EmailComponent({
     const pdfName = pdfDetails[0]?.Name;
     setIsLoading(true);
     let sendMail;
+   
+    const docId = !pdfDetails?.[0]?.IsEnableOTP
+      ? pdfDetails?.[0]?.objectId
+      : "";
+    let presignedUrl = pdfUrl;
+    try {
+      // const url = await Parse.Cloud.run("getsignedurl", { url: pdfUrl });
+      const axiosRes = await axios.post(
+        `${localStorage.getItem("baseUrl")}/functions/getsignedurl`,
+        { url: pdfUrl, docId: docId },
+        {
+          headers: {
+            "content-type": "Application/json",
+            "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+            "X-Parse-Session-Token": localStorage.getItem("accesstoken")
+          }
+        }
+      );
+      presignedUrl = axiosRes.data.result;
+    } catch (err) {
+      console.log("err in getsignedurl", err);
+    }
     for (let i = 0; i < emailList.length; i++) {
       try {
         const imgPng =
@@ -46,7 +69,7 @@ function EmailComponent({
           mailProvider: activeMailAdapter,
           extUserId: extUserId,
           pdfName: pdfName,
-          url: pdfUrl,
+          url: presignedUrl,
           recipient: emailList[i],
           subject: `${sender.name} has signed the doc - ${pdfName}`,
           from: sender.email,
@@ -129,6 +152,11 @@ function EmailComponent({
       }
     }
   };
+  const handleClose = () => {
+    setIsEmail(false);
+    setEmailValue("");
+    setEmailList([]);
+  };
   return (
     <div>
       {/* isEmail */}
@@ -154,7 +182,9 @@ function EmailComponent({
             <div className="flex flex-row">
               {!isAndroid && (
                 <button
-                  onClick={(e) => handleToPrint(e, pdfUrl, setIsDownloading)}
+                  onClick={(e) =>
+                    handleToPrint(e, pdfUrl, setIsDownloading, pdfDetails)
+                  }
                   className="op-btn op-btn-neutral op-btn-sm text-[15px]"
                 >
                   <i className="fa-light fa-print" aria-hidden="true"></i>
@@ -163,9 +193,10 @@ function EmailComponent({
               )}
               <button
                 className="op-btn op-btn-primary op-btn-sm text-[15px] ml-2"
-                onClick={() =>
-                  handleDownloadPdf(pdfDetails, pdfUrl, setIsDownloading)
-                }
+                onClick={() => {
+                  handleClose();
+                  setIsDownloadModal(true);
+                }}
               >
                 <i className="fa-light fa-download" aria-hidden="true"></i>
                 {t("download")}
@@ -261,11 +292,7 @@ function EmailComponent({
             <button
               type="button"
               className="op-btn op-btn-ghost ml-2"
-              onClick={() => {
-                setIsEmail(false);
-                setEmailValue("");
-                setEmailList([]);
-              }}
+              onClick={() => handleClose()}
             >
               {t("close")}
             </button>

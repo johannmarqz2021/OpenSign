@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import "../../styles/opensigndrive.css";
 import axios from "axios";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { saveAs } from "file-saver";
 import { useNavigate } from "react-router-dom";
 import Table from "react-bootstrap/Table";
 import * as HoverCard from "@radix-ui/react-hover-card";
 import ModalUi from "../../primitives/ModalUi";
 import FolderModal from "../shared/fields/FolderModal";
 import { useTranslation } from "react-i18next";
+import { handleDownloadPdf } from "../../constant/Utils";
 
 function DriveBody(props) {
   const { t } = useTranslation();
@@ -37,15 +37,9 @@ function DriveBody(props) {
 
   //function to handle folder component
   const handleOnclikFolder = (data) => {
-    const folderData = {
-      name: data.Name,
-      objectId: data.objectId
-    };
+    const folderData = { name: data.Name, objectId: data.objectId };
     props.setFolderName((prev) => [...prev, folderData]);
-    props.setIsLoading({
-      isLoad: true,
-      message: t("loading-mssg")
-    });
+    props.setIsLoading({ isLoad: true, message: t("loading-mssg") });
     props.setDocId(data.objectId);
     props.setPdfData([]);
     props.setSkip(0);
@@ -100,16 +94,17 @@ function DriveBody(props) {
 
   //function for navigate user to microapp-signature component
   const checkPdfStatus = async (data) => {
-    const signerExist = data.Signers && data.Signers;
-    const isDecline = data.IsDeclined && data.IsDeclined;
-    const isPlaceholder = data.Placeholders && data.Placeholders;
-    const signedUrl = data.SignedUrl;
+    const signerExist = data?.Signers;
+    const isDecline = data?.IsDeclined;
+    const isPlaceholder = data?.Placeholders;
+    const signedUrl = data?.SignedUrl;
+    const isSignYourself = data?.IsSignyourself;
     //checking if document has completed and request signature flow
     if (data?.IsCompleted && signerExist?.length > 0) {
       navigate(`/recipientSignPdf/${data.objectId}`);
     }
     //checking if document has completed and signyour-self flow
-    else if (!signerExist && !isPlaceholder) {
+    else if ((!signerExist && !isPlaceholder) || isSignYourself) {
       navigate(`/signaturePdf/${data.objectId}`);
     }
     //checking if document has declined by someone
@@ -136,12 +131,11 @@ function DriveBody(props) {
     }
   };
 
-  const handleMenuItemClick = (selectType, data) => {
+  const handleMenuItemClick = async (selectType, data) => {
     switch (selectType) {
       case "Download": {
-        const pdfName = data && data.Name;
-        const pdfUrl = data && data.SignedUrl ? data.SignedUrl : data.URL;
-        saveAs(pdfUrl, `${sanitizeFileName(pdfName)}_signed_by_OpenSign™.pdf`);
+        await handleDownloadPdf([data]);
+
         break;
       }
       case "Rename": {
@@ -263,11 +257,6 @@ function DriveBody(props) {
       alert(t("folder-already-exist!"));
       setIsOpenMoveModal(false);
     }
-  };
-
-  const sanitizeFileName = (pdfName) => {
-    // Replace spaces with underscore
-    return pdfName.replace(/ /g, "_");
   };
 
   const handleEnterPress = (e, data) => {

@@ -14,6 +14,7 @@ import {
   checkIsSubscribed,
   copytoData,
   fetchUrl,
+  getSignedUrl,
   replaceMailVaribles
 } from "../constant/Utils";
 import Confetti from "react-confetti";
@@ -30,6 +31,7 @@ import SubscribeCard from "./SubscribeCard";
 import { validplan } from "../json/plansArr";
 import { serverUrl_fn } from "../constant/appinfo";
 import { useTranslation } from "react-i18next";
+import DownloadPdfZip from "./DownloadPdfZip";
 
 const ReportTable = (props) => {
   const { t } = useTranslation();
@@ -69,7 +71,9 @@ const ReportTable = (props) => {
   const [publicUserName, setIsPublicUserName] = useState("");
   const [isViewShare, setIsViewShare] = useState({});
   const [isSubscribe, setIsSubscribe] = useState(true);
+  const [isModal, setIsModal] = useState({});
   const [reason, setReason] = useState("");
+  const [isDownloadModal, setIsDownloadModal] = useState(false);
   const Extand_Class = localStorage.getItem("Extand_Class");
   const extClass = Extand_Class && JSON.parse(Extand_Class);
   const startIndex = (currentPage - 1) * props.docPerPage;
@@ -266,7 +270,8 @@ const ReportTable = (props) => {
                 Signers: signers,
                 SendinOrder: Doc?.SendinOrder || false,
                 AutomaticReminders: Doc?.AutomaticReminders || false,
-                RemindOnceInEvery: Doc?.RemindOnceInEvery || 5
+                RemindOnceInEvery: Doc?.RemindOnceInEvery || 5,
+                IsEnableOTP: Doc?.IsEnableOTP || false
               };
               try {
                 const res = await axios.post(
@@ -515,7 +520,6 @@ const ReportTable = (props) => {
       .then(async (result) => {
         const res = result.data;
         if (res) {
-          setReason("");
           setActLoader({});
           setIsAlert(true);
           setAlertMsg({
@@ -527,7 +531,43 @@ const ReportTable = (props) => {
             (x) => x.objectId !== item.objectId
           );
           props.setList(upldatedList);
+          const params = {
+            event: "declined",
+            body: {
+              objectId: item.objectId,
+              file: item?.SignedUrl || item?.URL,
+              name: item?.Name,
+              note: item?.Note || "",
+              description: item?.Description || "",
+              signers: item?.Signers?.map((x) => ({
+                name: x?.Name,
+                email: x?.Email,
+                phone: x?.Phone
+              })),
+              declinedBy: jsonSender?.email,
+              declinedReason: reason,
+              declinedAt: new Date(),
+              createdAt: item?.createdAt
+            }
+          };
+
+          try {
+            await axios.post(
+              `${localStorage.getItem("baseUrl")}functions/callwebhook`,
+              params,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+                  sessiontoken: localStorage.getItem("accesstoken")
+                }
+              }
+            );
+          } catch (err) {
+            console.log("Err ", err);
+          }
         }
+        setReason("");
       })
       .catch((err) => {
         console.log("err", err);
@@ -612,10 +652,15 @@ const ReportTable = (props) => {
     setActLoader({ [`${item.objectId}`]: true });
     const url = item?.SignedUrl || item?.URL || "";
     const pdfName = item?.Name || "exported_file";
+    const isCompleted = item?.IsCompleted || false;
     if (url) {
       try {
-        const signedUrl = await Parse.Cloud.run("getsignedurl", { url: url });
-        await fetchUrl(signedUrl, pdfName);
+        if (isCompleted) {
+          setIsDownloadModal({ [item.objectId]: true });
+        } else {
+          const signedUrl = await getSignedUrl(url);
+          await fetchUrl(signedUrl, pdfName);
+        }
         setActLoader({});
       } catch (err) {
         console.log("err in getsignedurl", err);
@@ -741,7 +786,7 @@ const ReportTable = (props) => {
       sessionToken: localStorage.getItem("accesstoken")
     };
     let params = {
-      mailProvider: doc?.ExtUserPtr?.active_mail_adapter,
+      mailProvider: doc?.ExtUserPtr?.active_mail_adapter || "",
       extUserId: doc?.ExtUserPtr?.objectId,
       recipient: userDetails?.Email,
       subject: mail.subject,
@@ -1089,10 +1134,15 @@ const ReportTable = (props) => {
           <Loader />
         </div>
       )}
-      <div className="p-2 w-full overflow-auto bg-base-100 text-base-content op-card shadow-lg">
+      <div className="p-2 w-full overflow-hidden bg-base-100 text-base-content op-card shadow-lg">
         {isCelebration && (
           <div className="relative z-[1000]">
-            <Confetti width={window.innerWidth} height={window.innerHeight} />
+            <Confetti
+              width={window.innerWidth}
+              height={window.innerHeight}
+              recycle={false} // Prevents confetti from repeating
+              gravity={0.1} // Adjust the gravity to control the speed
+            />
           </div>
         )}
         {isAlert && <Alert type={alertMsg.type}>{alertMsg.message}</Alert>}
@@ -1132,8 +1182,8 @@ const ReportTable = (props) => {
         </div>
         <div
           className={`${
-            isDashboard && props.List?.length > 0 ? "h-[317px]" : "h-full"
-          } w-full`}
+            isDashboard && props.List?.length > 0 ? "min-h-[317px]" : "h-full"
+          } overflow-auto w-full`}
         >
           <table className="op-table border-collapse w-full ">
             <thead className="text-[14px]">
@@ -1169,48 +1219,50 @@ const ReportTable = (props) => {
                         </td>
                         <td className="px-4 py-2 ">{item?.Email || "-"}</td>
                         <td className="px-4 py-2">{item?.Phone || "-"}</td>
-                        <td className="px-3 py-2 text-white grid grid-cols-2">
-                          {props.actions?.length > 0 &&
-                            props.actions.map((act, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleActionBtn(act, item)}
-                                title={t(`btnLabel.${act.hoverLabel}`)}
-                                className={`${
-                                  act?.btnColor ? act.btnColor : ""
-                                } op-btn op-btn-sm`}
+                        <td className="px-3 py-2">
+                          <div className="text-base-content min-w-max flex flex-row gap-x-2 gap-y-1 justify-start items-center">
+                            {props.actions?.length > 0 &&
+                              props.actions.map((act, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleActionBtn(act, item)}
+                                  title={t(`btnLabel.${act.hoverLabel}`)}
+                                  className={`${
+                                    act?.btnColor ? act.btnColor : ""
+                                  } op-btn op-btn-sm`}
+                                >
+                                  <i className={act.btnIcon}></i>
+                                </button>
+                              ))}
+                            {isDeleteModal[item.objectId] && (
+                              <ModalUi
+                                isOpen
+                                title={"Delete Contact"}
+                                handleClose={handleClose}
                               >
-                                <i className={act.btnIcon}></i>
-                              </button>
-                            ))}
-                          {isDeleteModal[item.objectId] && (
-                            <ModalUi
-                              isOpen
-                              title={"Delete Contact"}
-                              handleClose={handleClose}
-                            >
-                              <div className="m-[20px]">
-                                <div className="text-lg font-normal text-black">
-                                  {t("contact-delete-alert")}
+                                <div className="m-[20px]">
+                                  <div className="text-lg font-normal text-black">
+                                    {t("contact-delete-alert")}
+                                  </div>
+                                  <hr className="bg-[#ccc] mt-4 " />
+                                  <div className="flex items-center mt-3 gap-2 text-white">
+                                    <button
+                                      onClick={() => handleDelete(item)}
+                                      className="op-btn op-btn-primary"
+                                    >
+                                      {t("yes")}
+                                    </button>
+                                    <button
+                                      onClick={handleClose}
+                                      className="op-btn op-btn-secondary"
+                                    >
+                                      {t("no")}
+                                    </button>
+                                  </div>
                                 </div>
-                                <hr className="bg-[#ccc] mt-4 " />
-                                <div className="flex items-center mt-3 gap-2 text-white">
-                                  <button
-                                    onClick={() => handleDelete(item)}
-                                    className="op-btn op-btn-primary"
-                                  >
-                                    {t("yes")}
-                                  </button>
-                                  <button
-                                    onClick={handleClose}
-                                    className="op-btn op-btn-secondary"
-                                  >
-                                    {t("no")}
-                                  </button>
-                                </div>
-                              </div>
-                            </ModalUi>
-                          )}
+                              </ModalUi>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ) : (
@@ -1252,9 +1304,55 @@ const ReportTable = (props) => {
                             {item?.URL ? t("download") : "-"}
                           </button>
                         </td>
-                        <td className="px-4 py-2">
-                          {formatRow(item?.ExtUserPtr)}
-                        </td>
+                        {props.ReportName === "In-progress documents" ? (
+                          <td className="px-4 py-2">
+                            <button
+                              onClick={() =>
+                                item?.AuditTrail?.length > 0 &&
+                                setIsModal({ [item?.objectId]: true })
+                              }
+                              className={`${
+                                item?.AuditTrail?.length
+                                  ? "border-green-400"
+                                  : "cursor-default op-border-primary"
+                              } focus:outline-none w-[60px] border-[2px] text-[12px] rounded-full md:self-center`}
+                            >
+                              {item?.AuditTrail?.length ? "VIEWED" : "SENT"}
+                            </button>
+                            {isModal[item.objectId] && (
+                              <ModalUi
+                                isOpen
+                                title={t("document-logs")}
+                                handleClose={() => setIsModal({})}
+                              >
+                                {item?.AuditTrail?.map((x, i) => (
+                                  <div
+                                    key={i}
+                                    className="pl-3 first:mt-2 text-sm font-medium flex flex-col md:flex-row items-start md:gap-4 border-t-[1px] border-gray-600"
+                                  >
+                                    <div className="py-2 break-all font-bold md:text-[12px] md:col-span-2 w-full md:w-[210px]">
+                                      {x?.UserPtr?.Email || "-"}
+                                    </div>
+                                    <button className="px-2 cursor-default border-[2px] text-[12px] border-green-400 rounded-full md:self-center">
+                                      {x?.Activity?.toUpperCase() || "-"}
+                                    </button>
+                                    <div className=" text-[12px] py-2">
+                                      {x?.Activity === "Signed"
+                                        ? new Date(x?.SignedOn)?.toUTCString()
+                                        : new Date(
+                                            x?.ViewedOn
+                                          )?.toUTCString() || "-"}
+                                    </div>
+                                  </div>
+                                ))}
+                              </ModalUi>
+                            )}
+                          </td>
+                        ) : (
+                          <td className="px-4 py-2">
+                            {formatRow(item?.ExtUserPtr)}
+                          </td>
+                        )}
                         <td className="px-4 py-2">
                           {!item?.IsSignyourself && item?.Placeholders ? (
                             <button
@@ -1272,11 +1370,7 @@ const ReportTable = (props) => {
                             <td className=" pl-[20px] py-2">
                               {props.ReportName === "Templates" && (
                                 <div className="flex flex-row">
-                                  <label
-                                    className={
-                                      "cursor-pointer relative inline-flex items-center mb-0"
-                                    }
-                                  >
+                                  <label className="cursor-pointer relative inline-flex items-center mb-0">
                                     <input
                                       checked={props.isPublic?.[item.objectId]}
                                       onChange={(e) =>
@@ -1449,7 +1543,7 @@ const ReportTable = (props) => {
                             </td>
                           )}
                         <td className="px-2 py-2">
-                          <div className="text-base-content flex flex-row gap-x-2 gap-y-1 justify-start items-center">
+                          <div className="text-base-content min-w-max flex flex-row gap-x-2 gap-y-1 justify-start items-center">
                             {props.actions?.length > 0 &&
                               props.actions.map((act, index) =>
                                 props.ReportName === "Templates" ? (
@@ -2022,6 +2116,14 @@ const ReportTable = (props) => {
                                 ))}
                               </div>
                             </ModalUi>
+                          )}
+                          {isDownloadModal[item.objectId] && (
+                            <DownloadPdfZip
+                              setIsDownloadModal={setIsDownloadModal}
+                              isDownloadModal={isDownloadModal[item.objectId]}
+                              pdfDetails={[item]}
+                              isDocId={false}
+                            />
                           )}
                         </td>
                       </tr>
