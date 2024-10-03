@@ -151,7 +151,9 @@
     "Share": "Partager",
     "View": "Voir",
     "option": "Option",
-    "Embed": "Intégrer"
+    "Embed": "Intégrer",
+    "Copy TemplateId": "Copier l'ID du modèle",
+    "Copy Public URL": "Copier l'URL publique"
   },
   "report-help": {
     "Draft Documents": "Il s'agit de documents que vous avez commencés mais que vous n'avez pas finalisés pour envoi.",
@@ -262,9 +264,10 @@
   "make-template-public-alert": "Êtes-vous sûr de vouloir rendre ce modèle public ?",
   "make-template-private-alert": "Êtes-vous sûr de vouloir rendre ce modèle privé ? Cela le supprimera de votre profil public.",
   "public-role": "Rôle public",
-  "public-url": "URL publique",
-  "public-url-copy-mssg": "Voici votre URL publique : copiez-la ou partagez-le avec le signataire et vous pouvoir voir tous vos paramètres publics modèles.",
-  "add-public-url-alert": "Veuillez ajouter votre URL publique et vous pourra rendre public modèle.",
+  "public-url": "Profil public requis",
+  "public-url-copy": "Voici votre URL publique : ",
+  "public-url-copy-mssg": "copiez-la ou partagez-le avec le signataire et vous pouvoir voir tous vos paramètres publics modèles.",
+  "add-public-url-alert": "Veuillez terminer la configuration de votre profil public OpenSign. Une fois cela fait, vous pourrez rendre les modèles publics. Ce processus ne doit être effectué qu’une seule fois.",
   "share-with-alert": "Vous ne pouvez pas partager un modèle si des contacts sont déjà attribués à des rôles. Veuillez supprimer toutes les attributions de contacts des rôles avant de partager le modèle.",
   "share-with": "Partager avec",
   "team-not-found": "Équipe introuvable",
@@ -631,6 +634,19 @@
   "reason": "Raison",
   "decline-by": "Refusé/révoqué par",
   "document-declined": "document refusé",
+  "public-template-mssg-1": "Pour intégrer OpenSign dans votre projet React ou Next.js, exécutez simplement la commande suivante :",
+  "public-template-mssg-2": "Assurez-vous que npm ou Yarn est configuré dans votre projet. Si vous utilisez Yarn, vous pouvez remplacer npm install par Yarn Add @opensign/react.",
+  "public-template-mssg-3": "Besoin de plus de détails ou d'exemples ?",
+  "public-template-mssg-4": "Visitez le",
+  "public-template-mssg-5": "npm pour les dernières mises à jour, une documentation détaillée et l'historique des versions.",
+  "public-template-mssg-6":  "Avant de pouvoir utiliser cet extrait de code, vous devez rendre ce modèle public.",
+  "copy-code": "COPIE",
+  "copied-code": "COPIÉ",
+  "Installation": "Installation",
+  "Usage": "Usage",
+  "insufficient-credits": "Crédits de signature insuffisants",
+  "insufficient-credits-mssg": "Le propriétaire de ce document ne dispose actuellement pas des crédits OpenSign nécessaires pour que vous puissiez le signer. Veuillez contacter le propriétaire si vous avez besoin de plus de détails.",
+  "angular-npm-mssg-1": "Pour intégrer OpenSign dans votre projet Angular, exécutez simplement la commande suivante :",
   "quota-mail-info-head": "Limite mensuelle d'e-mails de signatures de demandes",
   "quota-mail-info": "Vous pouvez envoyer jusqu'à 15 e-mails de demande de signature chaque mois. Mettez à niveau maintenant pour envoyer directement des demandes de signature illimitées.",
   "quota-mail": "Vous avez atteint votre limite de 15 e-mails de demande de signature pour ce mois. Mettez à niveau maintenant pour continuer à envoyer des e-mails directement.",
@@ -654,5 +670,7 @@
   "pdf-certificate": "Télécharger Pdf + Certificat",
   "document-logs": "Journaux de documents",
   "server-down": "Impossible de se connecter au serveur OpenSign. Si vous hébergez vous-même OpenSign, veuillez vous assurer que toutes les étapes de la documentation ont été correctement suivies. Si vous exécutez OpenSign localement, vous y accédez peut-être via un numéro de port incorrect.",
-  "admin-exists": "L'administrateur existe déjà. Veuillez vous connecter à l'application en utilisant les informations d'identification de l'administrateur afin de gérer les utilisateurs."
+  "admin-exists": "L'administrateur existe déjà. Veuillez vous connecter à l'application en utilisant les informations d'identification de l'administrateur afin de gérer les utilisateurs.",
+  "public-tour-message": "Le modèle doit être public avant que vous puissiez générer un lien partageable.",
+  "add-user-template":"Vous devez ajouter un rôle avant de pouvoir lui ajouter des champs. "
 }

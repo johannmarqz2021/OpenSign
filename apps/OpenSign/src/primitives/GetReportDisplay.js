@@ -32,6 +32,7 @@ import { validplan } from "../json/plansArr";
 import { serverUrl_fn } from "../constant/appinfo";
 import { useTranslation } from "react-i18next";
 import DownloadPdfZip from "./DownloadPdfZip";
+import EmbedTab from "../components/pdf/EmbedTab";
 
 const ReportTable = (props) => {
   const { t } = useTranslation();
@@ -74,6 +75,8 @@ const ReportTable = (props) => {
   const [isModal, setIsModal] = useState({});
   const [reason, setReason] = useState("");
   const [isDownloadModal, setIsDownloadModal] = useState(false);
+  const [isEmbed, setIsEmbed] = useState(false);
+  const [isPublicTour, setIsPublicTour] = useState();
   const Extand_Class = localStorage.getItem("Extand_Class");
   const extClass = Extand_Class && JSON.parse(Extand_Class);
   const startIndex = (currentPage - 1) * props.docPerPage;
@@ -369,6 +372,21 @@ const ReportTable = (props) => {
       setIsShareWith({ [item.objectId]: true });
     } else if (act.action === "Embed") {
       handleEmbedFunction(item);
+    } else if (act.action === "CopyTemplateId") {
+      copyTemplateId(item.objectId);
+    } else if (act.action === "CopyPublicURL") {
+      const isPublic = item?.IsPublic;
+      if (isPublic) {
+        let publicUrl = "";
+        if (isStaging) {
+          publicUrl = `https://staging.opensign.me/publicsign?templateid=${item.objectId}`;
+        } else {
+          publicUrl = `https://opensign.me/publicsign?templateid=${item.objectId}`;
+        }
+        copyTemplateId(publicUrl);
+      } else {
+        setIsPublicTour({ [item.objectId]: true });
+      }
     }
   };
   // Get current list
@@ -693,7 +711,7 @@ const ReportTable = (props) => {
       receiver_phone: userDetails?.Phone || "",
       expiry_date: localExpireDate,
       company_name: doc.ExtUserPtr.Company,
-      signing_url: `<a href=${signPdf}>Sign here</a>`
+      signing_url: `<a href=${signPdf} target=_blank>Sign here</a>`
     };
     const res = replaceMailVaribles(subject, "", variables);
 
@@ -722,7 +740,7 @@ const ReportTable = (props) => {
       receiver_phone: userDetails?.Phone || "",
       expiry_date: localExpireDate,
       company_name: doc.ExtUserPtr.Company,
-      signing_url: `<a href=${signPdf}>Sign here</a>`
+      signing_url: `<a href=${signPdf} target=_blank>Sign here</a>`
     };
     const res = replaceMailVaribles("", body, variables);
 
@@ -763,7 +781,7 @@ const ReportTable = (props) => {
       receiver_phone: user?.signerPtr?.Phone || "",
       expiry_date: localExpireDate,
       company_name: doc?.ExtUserPtr?.Company || "",
-      signing_url: `<a href=${signPdf}>Sign here</a>`
+      signing_url: `<a href=${signPdf} target=_blank>Sign here</a>`
     };
 
     const subject =
@@ -1121,11 +1139,24 @@ const ReportTable = (props) => {
     }
   };
   const handleEmbedFunction = async (item) => {
+    setIsEmbed(true);
     setIsPublicProfile({
-      [item.objectId]: props.isPublic[item.objectId]
+      [item.objectId]: true
     });
     let extendUser = JSON.parse(localStorage.getItem("Extand_Class"));
     setIsPublicUserName(extendUser[0]?.UserName || "");
+  };
+
+  const publicTourConfig = [
+    {
+      selector: '[data-tut="IsPublic"]',
+      content: t("public-tour-message"),
+      position: "top",
+      style: { fontSize: "13px" }
+    }
+  ];
+  const closePublicTour = () => {
+    setIsPublicTour();
   };
   return (
     <div className="relative">
@@ -1147,13 +1178,27 @@ const ReportTable = (props) => {
         )}
         {isAlert && <Alert type={alertMsg.type}>{alertMsg.message}</Alert>}
         {props.tourData && props.ReportName === "Templates" && (
-          <Tour
-            onRequestClose={closeTour}
-            steps={props.tourData}
-            isOpen={isTour}
-            // rounded={5}
-            closeWithMask={false}
-          />
+          <>
+            <Tour
+              onRequestClose={closeTour}
+              steps={props.tourData}
+              isOpen={isTour}
+              // rounded={5}
+              closeWithMask={false}
+            />
+            {isPublicTour && (
+              <Tour
+                showNumber={false}
+                showNavigation={false}
+                showNavigationNumber={false}
+                onRequestClose={closePublicTour}
+                steps={publicTourConfig}
+                isOpen={true}
+                rounded={5}
+                closeWithMask={false}
+              />
+            )}
+          </>
         )}
         <div className="flex flex-row items-center justify-between my-2 mx-3 text-[20px] md:text-[23px]">
           <div className="font-light">
@@ -1369,13 +1414,17 @@ const ReportTable = (props) => {
                           isEnableSubscription && (
                             <td className=" pl-[20px] py-2">
                               {props.ReportName === "Templates" && (
-                                <div className="flex flex-row">
+                                <div
+                                  className="flex flex-row "
+                                  data-tut="IsPublic"
+                                >
                                   <label className="cursor-pointer relative inline-flex items-center mb-0">
                                     <input
                                       checked={props.isPublic?.[item.objectId]}
-                                      onChange={(e) =>
-                                        handlePublicChange(e, item)
-                                      }
+                                      onChange={(e) => {
+                                        setIsPublicTour();
+                                        handlePublicChange(e, item);
+                                      }}
                                       type="checkbox"
                                       value=""
                                       className="sr-only peer"
@@ -1446,25 +1495,30 @@ const ReportTable = (props) => {
                                 <ModalUi
                                   isOpen
                                   title={t("public-url")}
-                                  handleClose={() => setIsPublicProfile({})}
+                                  handleClose={() => {
+                                    setIsPublicProfile({});
+                                    setIsEmbed(false);
+                                  }}
                                 >
                                   <div className="m-[20px]">
-                                    {publicUserName ? (
+                                    {isEmbed && !item?.IsPublic ? (
+                                      <>
+                                        <p>{t("public-template-mssg-6")}</p>
+                                        <EmbedTab templateId={item.objectId} />
+                                      </>
+                                    ) : publicUserName ? (
                                       <div className="font-normal text-black">
-                                        <p>{t("public-url-copy-mssg")}</p>
-                                        <div className=" flex items-center justify-between gap-3 mt-2  p-[2px] ">
+                                        <span>{t("public-url-copy")}</span>
+                                        <div className=" flex items-center justify-between gap-3 p-[2px] ">
                                           <div className="w-[280px] whitespace-nowrap overflow-hidden text-ellipsis">
-                                            <span className="font-bold">
-                                              {t("public-url")} :
-                                            </span>
-                                            <span
-                                              onClick={() =>
-                                                copytoProfileLink()
-                                              }
-                                              className="ml-[2px] underline underline-offset-2 cursor-pointer"
+                                            <a
+                                              rel="noreferrer"
+                                              target="_blank"
+                                              href={publicUrl()}
+                                              className="ml-[2px] underline underline-offset-2 cursor-pointer text-blue-800"
                                             >
                                               {publicUrl()}
-                                            </span>
+                                            </a>
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <RWebShare
@@ -1481,12 +1535,12 @@ const ReportTable = (props) => {
                                               </button>
                                             </RWebShare>
                                             <button
-                                              className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm"
+                                              className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm md:w-[100px]"
                                               onClick={() =>
                                                 copytoProfileLink()
                                               }
                                             >
-                                              <i className="fa-light fa-link"></i>{" "}
+                                              <i className="fa-light fa-copy" />
                                               <span className="hidden md:inline-block">
                                                 {copied["publicprofile"]
                                                   ? t("copied")
@@ -1495,36 +1549,10 @@ const ReportTable = (props) => {
                                             </button>
                                           </div>
                                         </div>
-                                        <div className=" flex items-center justify-between gap-3 mt-2  p-[2px] ">
-                                          <div>
-                                            <span className="font-bold">
-                                              {t("templateid")} :
-                                            </span>
-                                            <span
-                                              onClick={() =>
-                                                copyTemplateId(item.objectId)
-                                              }
-                                              className="underline ml-[2px] underline-offset-2 w-[150px] md:w-[350px] whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer"
-                                            >
-                                              {item.objectId}
-                                            </span>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <button
-                                              className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm"
-                                              onClick={() =>
-                                                copyTemplateId(item.objectId)
-                                              }
-                                            >
-                                              <i className="fa-light fa-link"></i>{" "}
-                                              <span className="hidden md:inline-block">
-                                                {copied["templateid"]
-                                                  ? t("copied")
-                                                  : t("copy")}
-                                              </span>
-                                            </button>
-                                          </div>
-                                        </div>
+                                        <p className="text-[13px] mt-[5px]">
+                                          {t("public-url-copy-mssg")}
+                                        </p>
+                                        <EmbedTab templateId={item.objectId} />
                                       </div>
                                     ) : (
                                       <div className="font-normal text-black">
@@ -1533,7 +1561,7 @@ const ReportTable = (props) => {
                                           className="mt-3 op-btn op-btn-primary"
                                           onClick={() => navigate("/profile")}
                                         >
-                                          {t("add")}
+                                          {t("Proceed")}
                                         </button>
                                       </div>
                                     )}
@@ -1584,65 +1612,33 @@ const ReportTable = (props) => {
                                         {isOption[item.objectId] &&
                                           act.action === "option" && (
                                             <ul className="absolute -right-1 top-auto z-[70] w-max op-dropdown-content op-menu shadow bg-base-100 text-base-content rounded-box">
-                                              {act.subaction?.map((subact) =>
-                                                props.isPublic[
-                                                  item.objectId
-                                                ] ? (
-                                                  <li
-                                                    key={subact.btnId}
-                                                    onClick={() =>
-                                                      handleActionBtn(
-                                                        subact,
-                                                        item
-                                                      )
-                                                    }
-                                                    title={t(
-                                                      `btnLabel.${subact.btnLabel}`
-                                                    )}
-                                                  >
-                                                    <span>
-                                                      <i
-                                                        className={`${subact.btnIcon} mr-1.5`}
-                                                      ></i>
-                                                      {subact.btnLabel && (
-                                                        <span className="text-[13px] capitalize font-medium">
-                                                          {t(
-                                                            `btnLabel.${subact.btnLabel}`
-                                                          )}
-                                                        </span>
-                                                      )}
-                                                    </span>
-                                                  </li>
-                                                ) : (
-                                                  subact.action !== "Embed" && (
-                                                    <li
-                                                      key={subact.btnId}
-                                                      onClick={() =>
-                                                        handleActionBtn(
-                                                          subact,
-                                                          item
-                                                        )
-                                                      }
-                                                      title={t(
-                                                        `btnLabel.${subact.btnLabel}`
-                                                      )}
-                                                    >
-                                                      <span>
-                                                        <i
-                                                          className={`${subact.btnIcon} mr-1.5`}
-                                                        ></i>
-                                                        {subact.btnLabel && (
-                                                          <span className="text-[13px] capitalize font-medium">
-                                                            {t(
-                                                              `btnLabel.${subact.btnLabel}`
-                                                            )}
-                                                          </span>
+                                              {act.subaction?.map((subact) => (
+                                                <li
+                                                  key={subact.btnId}
+                                                  onClick={() =>
+                                                    handleActionBtn(
+                                                      subact,
+                                                      item
+                                                    )
+                                                  }
+                                                  title={t(
+                                                    `btnLabel.${subact.btnLabel}`
+                                                  )}
+                                                >
+                                                  <span>
+                                                    <i
+                                                      className={`${subact.btnIcon} mr-1.5`}
+                                                    ></i>
+                                                    {subact.btnLabel && (
+                                                      <span className="text-[13px] capitalize font-medium">
+                                                        {t(
+                                                          `btnLabel.${subact.btnLabel}`
                                                         )}
                                                       </span>
-                                                    </li>
-                                                  )
-                                                )
-                                              )}
+                                                    )}
+                                                  </span>
+                                                </li>
+                                              ))}
                                             </ul>
                                           )}
                                       </div>
@@ -1963,7 +1959,7 @@ const ReportTable = (props) => {
                                         className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm"
                                         onClick={() => copytoclipboard(share)}
                                       >
-                                        <i className="fa-light fa-link"></i>{" "}
+                                        <i className="fa-light fa-copy" />
                                         {copied[share.email]
                                           ? t("copied")
                                           : t("copy")}

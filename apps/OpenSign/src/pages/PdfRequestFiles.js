@@ -73,7 +73,7 @@ function PdfRequestFiles(props) {
   const [selectWidgetId, setSelectWidgetId] = useState("");
   const [otpLoader, setOtpLoader] = useState(false);
   const [isCelebration, setIsCelebration] = useState(false);
-  const [requestSignTour, setRequestSignTour] = useState(false);
+  const [requestSignTour, setRequestSignTour] = useState(true);
   const [tourStatus, setTourStatus] = useState([]);
   const [isLoading, setIsLoading] = useState({
     isLoad: true,
@@ -129,7 +129,7 @@ function PdfRequestFiles(props) {
   const [contact, setContact] = useState({ name: "", phone: "", email: "" });
   const [isOtp, setIsOtp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [res, setRes] = useState({});
+  const [publicRes, setPublicRes] = useState({});
   const [documentId, setDocumentId] = useState("");
   const [isPublicContact, setIsPublicContact] = useState(false);
   const [pdfArrayBuffer, setPdfArrayBuffer] = useState("");
@@ -244,7 +244,13 @@ function PdfRequestFiles(props) {
   };
   async function checkIsSubscribed(extUserId, contactId) {
     const isGuestSign = isGuestSignFlow || false;
-    const res = await fetchSubscription(extUserId, contactId, isGuestSign);
+    const isPublic = props.templateId ? true : false;
+    const res = await fetchSubscription(
+      extUserId,
+      contactId,
+      isGuestSign,
+      isPublic
+    );
     const plan = res.plan;
     const billingDate = res?.billingDate;
     const status = res?.status;
@@ -278,6 +284,7 @@ function PdfRequestFiles(props) {
     }
   }
   //function for get document details for perticular signer with signer'object id
+  //whenever change anything in this function check react/angular packages also in plan js
   const getTemplateDetails = async () => {
     try {
       const params = { templateId: props.templateId, ispublic: true };
@@ -292,19 +299,22 @@ function PdfRequestFiles(props) {
           }
         }
       );
-      const documentData =
-        templateDeatils.data && templateDeatils.data.result
-          ? [templateDeatils.data.result]
-          : [];
+      const documentData = templateDeatils?.data?.result
+        ? [templateDeatils?.data?.result]
+        : [];
       if (documentData && documentData[0]?.error) {
-        props?.setTemplateStatus({
-          status: "Invalid"
-        });
+        props?.setTemplateStatus &&
+          props?.setTemplateStatus({
+            status: "Invalid"
+          });
+        throw new Error("error: Invalid TemplateId");
       } else if (documentData && documentData.length > 0) {
         if (documentData[0]?.IsPublic) {
-          props?.setTemplateStatus({
-            status: "Success"
-          });
+          //handle condition when someone use plan js then setTemplateStatus is not supporting
+          props?.setTemplateStatus &&
+            props?.setTemplateStatus({
+              status: "Success"
+            });
           const url =
             documentData[0] &&
             (documentData[0]?.SignedUrl || documentData[0]?.URL);
@@ -348,22 +358,34 @@ function PdfRequestFiles(props) {
             isLoad: false
           });
         } else {
-          props?.setTemplateStatus({
-            status: "Private"
-          });
+          props?.setTemplateStatus &&
+            props?.setTemplateStatus({
+              status: "Private"
+            });
+          setIsLoading(false);
+          setHandleError(t("something-went-wrong-mssg"));
+          console.error("error:  TemplateId is not public");
+          return;
         }
       } else {
-        props?.setTemplateStatus({
-          status: "Invalid"
-        });
+        props?.setTemplateStatus &&
+          props?.setTemplateStatus({
+            status: "Invalid"
+          });
+        setIsLoading(false);
+        setHandleError(t("something-went-wrong-mssg"));
+        console.error("error: Invalid TemplateId");
+        return;
       }
     } catch (err) {
-      console.log("err in get template details ", err);
+      setIsLoading(false);
       if (err?.response?.data?.code === 101) {
         setHandleError(t("error-template"));
       } else {
         setHandleError(t("something-went-wrong-mssg"));
       }
+      console.error("error: Invalid TemplateId");
+      return;
     }
   };
   //function for get document details for perticular signer with signer'object id
@@ -407,7 +429,7 @@ function PdfRequestFiles(props) {
 
         currUserId = getCurrentSigner?.objectId
           ? getCurrentSigner.objectId
-          : contactBookId || "";
+          : contactBookId || signerObjectId || "";
         if (isEnableSubscription) {
           await checkIsSubscribed(
             documentData[0]?.ExtUserPtr?.objectId,
@@ -991,7 +1013,7 @@ function PdfRequestFiles(props) {
                           receiver_phone: user.Phone,
                           expiry_date: localExpireDate,
                           company_name: orgName,
-                          signing_url: `<a href=${signPdf}>Sign here</a>`
+                          signing_url: `<a href=${signPdf} target=_blank>Sign here</a>`
                         };
                         replaceVar = replaceMailVaribles(
                           requestSubject,
@@ -1025,7 +1047,7 @@ function PdfRequestFiles(props) {
                             orgName +
                             "</td></tr> <tr> <td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Expires on</td><td> </td> <td style='color:#626363;font-weight:bold'>" +
                             localExpireDate +
-                            "</td></tr><tr> <td></td> <td> </td></tr></table> </div> <div style='margin-left:70px'><a href=" +
+                            "</td></tr><tr> <td></td> <td> </td></tr></table> </div> <div style='margin-left:70px'><a target=_blank href=" +
                             signPdf +
                             "> <button style='padding: 12px 12px 12px 12px;background-color: #d46b0f;color: white;  border: 0px;box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;font-weight:bold;margin-top:30px'>Sign here</button></a> </div> <div style='display: flex; justify-content: center;margin-top: 10px;'> </div></div></div><div><p> This is an automated email from OpenSign™. For any queries regarding this email, please contact the sender " +
                             senderEmail +
@@ -1287,7 +1309,11 @@ function PdfRequestFiles(props) {
       .catch((err) => {
         console.log("error updating field is decline ", err);
         setIsUiLoading(false);
-        alert(t("something-went-wrong-mssg"));
+        setIsAlert({
+          title: "Error",
+          isShow: true,
+          alertMessage: t("something-went-wrong-mssg")
+        });
       });
   };
   //function to add default signature for all requested placeholder of sign
@@ -1484,15 +1510,45 @@ function PdfRequestFiles(props) {
       );
 
       if (userRes?.data?.result) {
-        setRes(userRes.data.result);
-        await SendOtp();
+        setPublicRes(userRes.data.result);
+        const isEnableOTP = pdfDetails?.[0]?.IsEnableOTP || false;
+        if (isEnableOTP) {
+          await SendOtp();
+        } else {
+          setIsPublicContact(false);
+          setIsPublicTemplate(false);
+          setDocumentId(userRes.data?.result?.docId);
+          const contactId = userRes.data.result?.contactId;
+          setSignerObjectId(contactId);
+        }
       } else {
         console.log("error in public-sign to create user details");
-        alert(t("something-went-wrong-mssg"));
+        setIsAlert({
+          title: "Error",
+          isShow: true,
+          alertMessage: t("something-went-wrong-mssg")
+        });
       }
     } catch (e) {
       console.log("e", e);
-      //   setIsLoader(false);
+      if (
+        e?.response?.data?.error === "Insufficient Credit" ||
+        e?.response?.data?.error === "Plan expired"
+      ) {
+        handleCloseOtp();
+        setIsAlert({
+          title: t("insufficient-credits"),
+          isShow: true,
+          alertMessage: t("insufficient-credits-mssg")
+        });
+      } else {
+        handleCloseOtp();
+        setIsAlert({
+          title: "Error",
+          isShow: true,
+          alertMessage: t("something-went-wrong-mssg")
+        });
+      }
     }
   };
 
@@ -1506,7 +1562,7 @@ function PdfRequestFiles(props) {
 
   const SendOtp = async () => {
     try {
-      const params = { email: contact.email, docId: res.docId };
+      const params = { email: contact.email, docId: publicRes?.docId };
       const Otp = await axios.post(
         `${localStorage.getItem("baseUrl")}/functions/SendOTPMailV1`,
         params,
@@ -1524,7 +1580,11 @@ function PdfRequestFiles(props) {
       }
     } catch (error) {
       console.log("error in verify otp in public-sign", error);
-      alert(t("something-went-wrong-mssg"));
+      setIsAlert({
+        title: "Error",
+        isShow: true,
+        alertMessage: t("something-went-wrong-mssg")
+      });
     }
   };
 
@@ -1568,17 +1628,13 @@ function PdfRequestFiles(props) {
               JSON.stringify(contractUserDetails)
             );
           }
-
           localStorage.setItem("username", _user.name);
           localStorage.setItem("accesstoken", _user.sessionToken);
           setLoading(false);
-          // navigate(`/load/recipientSignPdf/${res?.docId}/${res?.contactId}`);
-          // document.getElementById("my_modal").close();
           setIsPublicContact(false);
           setIsPublicTemplate(false);
           setIsLoading({ isLoad: false });
-          setDocumentId(res?.docId);
-          getDocumentDetails(res?.docId);
+          setDocumentId(publicRes?.docId);
         }
       } catch (error) {
         console.log("err ", error);
@@ -1680,27 +1736,6 @@ function PdfRequestFiles(props) {
                 {!requestSignTour &&
                   signerObjectId &&
                   requestSignTourFunction()}
-                <ModalUi
-                  isOpen={isAlert.isShow}
-                  title={t("alert-message")}
-                  handleClose={() =>
-                    setIsAlert({ isShow: false, alertMessage: "" })
-                  }
-                >
-                  <div className="h-full p-[20px]">
-                    <p>{isAlert.alertMessage}</p>
-                    <button
-                      onClick={() =>
-                        setIsAlert({ isShow: false, alertMessage: "" })
-                      }
-                      type="button"
-                      className="op-btn op-btn-primary mt-3 px-4"
-                    >
-                      {t("ok")}
-                    </button>
-                  </div>
-                </ModalUi>
-
                 <Tour
                   showNumber={false}
                   showNavigation={false}
@@ -2216,6 +2251,22 @@ function PdfRequestFiles(props) {
             pdfDetails={pdfDetails}
             isDocId={true}
           />
+          <ModalUi
+            isOpen={isAlert.isShow}
+            title={isAlert?.title || t("alert-message")}
+            handleClose={() => setIsAlert({ isShow: false, alertMessage: "" })}
+          >
+            <div className="h-full p-[20px]">
+              <p>{isAlert.alertMessage}</p>
+              <button
+                onClick={() => setIsAlert({ isShow: false, alertMessage: "" })}
+                type="button"
+                className="op-btn op-btn-primary mt-3 px-4"
+              >
+                {t("close")}
+              </button>
+            </div>
+          </ModalUi>
         </>
       )}
     </DndProvider>

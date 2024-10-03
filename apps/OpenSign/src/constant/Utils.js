@@ -33,14 +33,15 @@ export const openInNewTab = (url, target) => {
 export async function fetchSubscription(
   extUserId,
   contactObjId,
-  isGuestSign = false
+  isGuestSign = false,
+  isPublic = false
 ) {
   try {
     const Extand_Class = localStorage.getItem("Extand_Class");
     const extClass = Extand_Class && JSON.parse(Extand_Class);
     // console.log("extClass ", extClass);
     let extUser;
-    if (extClass && extClass.length > 0) {
+    if (extClass && extClass.length > 0 && !isPublic) {
       extUser = extClass[0].objectId;
     } else {
       extUser = extUserId;
@@ -54,7 +55,7 @@ export async function fetchSubscription(
     };
     const params = isGuestSign
       ? { contactId: contactObjId }
-      : { extUserId: extUser };
+      : { extUserId: extUser, ispublic: isPublic };
     const tenatRes = await axios.post(url, params, { headers: headers });
     let plan, status, billingDate, adminId;
     if (isGuestSign) {
@@ -1282,8 +1283,14 @@ export const changeImageWH = async (base64Image) => {
 };
 
 //function to calculate font size of text area widgets
-const calculateFontSize = (position, containerScale, signyourself) => {
-  const font = position?.options?.fontSize || 12;
+const calculateFontSize = (
+  position,
+  containerScale,
+  signyourself,
+  widgetHeight
+) => {
+  const font =
+    position?.options?.fontSize || (widgetHeight ? widgetHeight / 2 : 12);
   if (!signyourself && position?.isMobile && position?.scale) {
     return font / position?.scale / containerScale;
   } else {
@@ -1333,8 +1340,17 @@ export const multiSignEmbed = async (
       if (signyourself) {
         updateItem = item.pos;
       } else {
+        // Checking required and optional widget types
+        // For both required and optional widgets, handle signurl, defaultValue, and response as the widget's data
+        // If the widget type is checkbox or radio (whether required or optional), we don't need to validate its value.
+        // Instead, add an empty checkbox/radio, or if a value exists, mark the checkbox/radio as checked.
         updateItem = item.pos.filter(
-          (data) => data?.options?.status === "required"
+          (data) =>
+            data?.options?.SignUrl ||
+            data?.options?.defaultValue ||
+            data?.options?.response ||
+            data?.type === "checkbox" ||
+            data?.type === radioButtonWidget
         );
       }
     } else {
@@ -1349,33 +1365,22 @@ export const multiSignEmbed = async (
       widgetsPositionArr.map(async (url) => {
         let signUrl = url.SignUrl && url.SignUrl;
         if (signUrl) {
-          if (url.ImageType === "image/png") {
-            //function for convert signature png base64 url to jpeg base64
-            const newUrl = await convertPNGtoJPEG(signUrl);
-            signUrl = newUrl;
-          }
           const res = await fetch(signUrl);
           return res.arrayBuffer();
         }
       })
     );
-
     widgetsPositionArr.forEach(async (position, id) => {
       let img;
       if (["signature", "stamp", "initials", "image"].includes(position.type)) {
-        if (
-          (position.ImageType && position.ImageType === "image/png") ||
-          position.ImageType === "image/jpeg"
-        ) {
+        if (position.ImageType && position.ImageType === "image/jpeg") {
           img = await pdfDoc.embedJpg(images[id]);
         } else {
           img = await pdfDoc.embedPng(images[id]);
         }
       } else if (!position.type) {
-        if (
-          (position.ImageType && position.ImageType === "image/png") ||
-          position.ImageType === "image/jpeg"
-        ) {
+        //  to handle old widget when only stamp and signature are exists
+        if (position.ImageType && position.ImageType === "image/jpeg") {
           img = await pdfDoc.embedJpg(images[id]);
         } else {
           img = await pdfDoc.embedPng(images[id]);
@@ -1415,7 +1420,7 @@ export const multiSignEmbed = async (
       };
       const color = position?.options?.fontColor;
       const updateColorInRgb = getWidgetsFontColor(color);
-      const fontSize = parseInt(position?.options?.fontSize || 13);
+      const fontSize = parseInt(position?.options?.fontSize || 12);
       const widgetTypeExist = [
         textWidget,
         textInputWidget,
@@ -1489,7 +1494,8 @@ export const multiSignEmbed = async (
         const fontSize = calculateFontSize(
           position,
           containerScale,
-          signyourself
+          signyourself,
+          position.Height
         );
         parseInt(fontSize);
         let textContent;

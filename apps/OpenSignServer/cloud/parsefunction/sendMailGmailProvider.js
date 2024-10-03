@@ -147,7 +147,7 @@ export default async function sendMailGmailProvider(_extRes, template) {
         },
       });
       console.log('gmail provider res: ', response?.status);
-      const certificatePath = './exports/certificate.pdf'
+      const certificatePath = './exports/certificate.pdf';
       if (fs.existsSync(certificatePath)) {
         try {
           fs.unlinkSync(certificatePath);

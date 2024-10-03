@@ -30,7 +30,6 @@ function EmailComponent({
     const pdfName = pdfDetails[0]?.Name;
     setIsLoading(true);
     let sendMail;
-   
     const docId = !pdfDetails?.[0]?.IsEnableOTP
       ? pdfDetails?.[0]?.objectId
       : "";

@@ -596,7 +596,7 @@ function UserProfile() {
                               className="op-btn op-btn-primary op-btn-outline op-btn-xs md:op-btn-sm"
                               onClick={() => copytoclipboard()}
                             >
-                              <i className="fa-light fa-link"></i>{" "}
+                              <i className="fa-light fa-copy" />
                             </button>
                           </div>
                         </div>
@@ -611,7 +611,7 @@ function UserProfile() {
                     <div className="flex flex-row md:items-center gap-1">
                       {editmode || !extendUser?.[0]?.Tagline ? (
                         <input
-                          maxLength={40}
+                          maxLength={100}
                           onChange={handleOnchangeTagLine}
                           value={tagLine}
                           disabled={!editmode}

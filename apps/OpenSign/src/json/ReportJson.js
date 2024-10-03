@@ -1,3 +1,5 @@
+import { isEnableSubscription } from "../constant/const";
+
 export default function reportJson(id) {
   // console.log("json ", json);
   const head = ["Sr.No", "Title", "Note", "Folder", "File", "Owner", "Signers"];
@@ -22,6 +24,31 @@ export default function reportJson(id) {
   const contactbook = ["Sr.No", "Name", "Email", "Phone"];
   const dashboardReportHead = ["Title", "File", "Owner", "Signers"];
   const templateReport = ["Sr.No", "Title", "File", "Owner", "Signers"];
+  const templateSubAction = isEnableSubscription
+    ? [
+        {
+          btnId: "2434",
+          btnLabel: "Embed",
+          hoverLabel: "Embed",
+          btnIcon: "fa-light fa-code",
+          action: "Embed"
+        },
+        {
+          btnId: "2434",
+          btnLabel: "Copy TemplateId",
+          hoverLabel: "Copy TemplateId",
+          btnIcon: "fa-light fa-copy",
+          action: "CopyTemplateId"
+        },
+        {
+          btnId: "2434",
+          btnLabel: "Copy Public URL",
+          hoverLabel: "Copy Public URL",
+          btnIcon: "fa-light fa-copy",
+          action: "CopyPublicURL"
+        }
+      ]
+    : [];
   switch (id) {
     // draft documents report
     case "ByHuevtCFY":
@@ -363,13 +390,7 @@ export default function reportJson(id) {
               redirectUrl: "template",
               action: "redirect"
             },
-            {
-              btnId: "2434",
-              btnLabel: "Embed",
-              hoverLabel: "Embed",
-              btnIcon: "fa-light fa-code",
-              action: "Embed"
-            },
+            ...templateSubAction,
             {
               btnId: "1834",
               btnLabel: "Delete",
@@ -391,18 +412,15 @@ export default function reportJson(id) {
             if (item.action === "option") {
               // Make a shallow copy of the item
               const newItem = { ...item };
-              newItem.subaction = [
-                {
-                  btnId: "1873",
-                  btnLabel: "Share with team",
-                  hoverLabel: "Share with team",
-                  btnIcon: "fa-light fa-share-nodes",
-                  redirectUrl: "",
-                  action: "sharewith"
-                },
-                ...newItem.subaction
-              ];
-
+              //splice method used to add `Share with team` option on second index of list
+              newItem.subaction.splice(1, 0, {
+                btnId: "1873",
+                btnLabel: "Share with team",
+                hoverLabel: "Share with team",
+                btnIcon: "fa-light fa-share-nodes",
+                redirectUrl: "",
+                action: "sharewith"
+              });
               return newItem;
             }
             return item;

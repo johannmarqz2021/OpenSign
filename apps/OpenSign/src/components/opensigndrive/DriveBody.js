@@ -135,7 +135,6 @@ function DriveBody(props) {
     switch (selectType) {
       case "Download": {
         await handleDownloadPdf([data]);
-
         break;
       }
       case "Rename": {
@@ -258,7 +257,6 @@ function DriveBody(props) {
       setIsOpenMoveModal(false);
     }
   };
-
   const handleEnterPress = (e, data) => {
     if (e.key === "Enter") {
       handledRenameDoc(data);
