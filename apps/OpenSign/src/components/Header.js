@@ -142,7 +142,7 @@ const Header = ({ showSidebar }) => {
   };
   return (
     <div>
-      {isEnableSubscription && showNotification && (
+      {/* {isEnableSubscription && showNotification && (
         <div className="flex justify-between items-center shadow py-1 bg-[#CAE4FA]  p-1">
           <div className="text-center text-[14px] ml-auto">
             {t("header-news")} —
@@ -160,7 +160,7 @@ const Header = ({ showSidebar }) => {
             <i className="fa-light fa-xmark"></i>
           </div>
         </div>
-      )}
+      )} */}
       <div className="op-navbar bg-base-100 shadow">
         <div className="flex-none">
           <button
@@ -240,11 +240,11 @@ const Header = ({ showSidebar }) => {
               tabIndex={0}
               className="mt-3 z-[1] p-2 shadow op-menu op-menu-sm op-dropdown-content text-base-content bg-base-100 rounded-box w-52"
             >
-              <li onClick={() => openInNewTab("https://docs.opensignlabs.com")}>
+              {/* <li onClick={() => openInNewTab("https://docs.opensignlabs.com")}>
                 <span>
                   <i className="fa-light fa-book"></i> {t("docs")}
                 </span>
-              </li>
+              </li> */}
               <li
                 onClick={() => {
                   setIsOpen(false);
@@ -265,13 +265,13 @@ const Header = ({ showSidebar }) => {
                   <i className="fa-light fa-lock"></i> {t("change-password")}
                 </span>
               </li>
-              {isEnableSubscription && (
+              {/* {isEnableSubscription && (
                 <li onClick={() => handleConsoleRedirect()}>
                   <span>
                     <i className="fa-light fa-id-card"></i> Console
                   </span>
                 </li>
-              )}
+              )} */}
               {isEnableSubscription && isTeam?.plan === "freeplan" && (
                 <li className="cursor-pointer" onClick={handleMailUsed}>
                   <span>

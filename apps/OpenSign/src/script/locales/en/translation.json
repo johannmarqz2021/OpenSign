@@ -78,7 +78,7 @@
       "Create template": "Create template",
       "Manage templates": "Manage templates"
     },
-    "OpenSign™ Drive": "OpenSign™ Drive",
+    "OpenSign™ Drive": "Dioma Drive",
     "Reports": "Reports",
     "Reports-Children": {
       "Need your sign": "Need your sign",
@@ -191,7 +191,7 @@
   "remind-once": " Remind once in every (Days)",
   "next": "Next",
   "select-folder": "Select Folder",
-  "OpenSign-drive": "OpenSign™ Drive",
+  "OpenSign-drive": "Dioma Drive",
   "drive-document-status": {
     "Completed": "Completed",
     "Declined": "Declined",

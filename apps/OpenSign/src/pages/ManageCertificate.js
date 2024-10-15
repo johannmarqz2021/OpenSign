@@ -81,7 +81,6 @@ const ManageCertificate = () => {
             setFieldValue('password', '');
             setFieldValue('passwordConfirmation', '');
             setFieldValue('date', null);
-
             return res;
         } catch (err) {
             setIsAlert({
