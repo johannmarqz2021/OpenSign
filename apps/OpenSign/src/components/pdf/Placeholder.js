@@ -331,9 +331,9 @@ function Placeholder(props) {
     //condition for only placeholder and template flow
     if (props.data && props?.pos?.type !== textWidget) {
       props.setUniqueId(props?.data?.Id);
-      const checkIndex = props.xyPostion.findIndex(
-        (data) => data.Id === props.data.Id
-      );
+      const checkIndex = props.xyPostion
+        .filter((data) => data.Role !== "prefill")
+        .findIndex((data) => data.Id === props.data.Id);
 
       props.setIsSelectId(checkIndex || 0);
     }
@@ -342,10 +342,6 @@ function Placeholder(props) {
     else if (props.data && props.pos.type === textWidget) {
       props.setTempSignerId(props.uniqueId);
       props.setUniqueId(props?.data?.Id);
-      const checkIndex = props.xyPostion.findIndex(
-        (data) => data.Id === props.data.Id
-      );
-      props.setIsSelectId(checkIndex || 0);
     }
     props.setSignKey(props.pos.key);
     props.setWidgetType(props.pos.type);
@@ -651,6 +647,21 @@ function Placeholder(props) {
       }
     }
   };
+  //function to calculate font size
+  const calculateFont = (size, isMinHeight) => {
+    const containerScale = getContainerScale(
+      props.pdfOriginalWH,
+      props.pageNumber,
+      props.containerWH
+    );
+    const fontSize = (size || 12) * containerScale * props.scale;
+    //isMinHeight to set text box minimum height
+    if (isMinHeight) {
+      return fontSize * 1.5 + "px";
+    } else {
+      return fontSize + "px";
+    }
+  };
 
   const getCursor = () => {
     if (props.data && props.isNeedSign) {
@@ -745,12 +756,16 @@ function Placeholder(props) {
               ? "auto"
               : props.posHeight(props.pos, props.isSignYourself)
         }}
+        minHeight={calculateFont(props.pos.options?.fontSize, true)}
+        maxHeight="auto"
         onResizeStart={() => {
           setDraggingEnabled(true);
           props.setIsResize && props.setIsResize(true);
         }}
         onResizeStop={(e, direction, ref) => {
-          props.setIsResize && props.setIsResize(false);
+          setTimeout(() => {
+            props.setIsResize && props.setIsResize(false);
+          }, 50);
           props.handleSignYourselfImageResize &&
             props.handleSignYourselfImageResize(
               ref,
@@ -785,7 +800,7 @@ function Placeholder(props) {
             h: ref.offsetHeight / (props.scale * containerScale)
           });
         }}
-        onClick={() => handleOnClickPlaceholder()}
+        onClick={() => !props.isResize && handleOnClickPlaceholder()}
       >
         {props.isShowBorder &&
         props.pos.type !== radioButtonWidget &&
@@ -872,7 +887,7 @@ function Placeholder(props) {
               startDate={startDate}
               handleSaveDate={handleSaveDate}
               xPos={props.xPos}
-              posHeight={props.posHeight}
+              calculateFont={calculateFont}
             />
           </div>
         ) : (
@@ -900,7 +915,7 @@ function Placeholder(props) {
               startDate={startDate}
               handleSaveDate={handleSaveDate}
               xPos={props.xPos}
-              posHeight={props.posHeight}
+              calculateFont={calculateFont}
             />
           </>
         )}
