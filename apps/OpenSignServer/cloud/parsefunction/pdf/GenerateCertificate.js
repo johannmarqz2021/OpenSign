@@ -1,6 +1,7 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'node:fs';
 import fontkit from '@pdf-lib/fontkit';
+import moment from 'moment-timezone'
 
 export default async function GenerateCertificate(docDetails) {
   const pdfDoc = await PDFDocument.create();
@@ -24,11 +25,11 @@ export default async function GenerateCertificate(docDetails) {
   const textKeyColor = rgb(0.12, 0.12, 0.12);
   const textValueColor = rgb(0.3, 0.3, 0.3);
   const completedAt = new Date();
-  const completedUTCtime = completedAt.toUTCString();
+  const completedUTCtime = moment(completedAt).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss');
   const signersCount = docDetails?.Signers?.length || 1;
   const generateAt = new Date();
-  const generatedUTCTime = generateAt.toUTCString();
-  const generatedOn = 'Generated On ' + generatedUTCTime;
+  const generatedUTCTime = generateAt;
+  const generatedOn = 'Generado el ' + moment(generatedUTCTime).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss');
   const OriginIp = docDetails?.OriginIp || '';
   const company = docDetails?.ExtUserPtr?.Company || '';
   const createdAt = docDetails?.DocSentAt?.iso || docDetails.createdAt;
@@ -36,27 +37,27 @@ export default async function GenerateCertificate(docDetails) {
   const auditTrail =
     docDetails?.Signers?.length > 0
       ? docDetails.AuditTrail.map(x => {
-          const data = docDetails.Signers.find(y => y.objectId === x.UserPtr.objectId);
-          return {
-            ...data,
-            ipAddress: x.ipAddress,
-            SignedOn: x?.SignedOn || generatedUTCTime,
-            ViewedOn: x?.ViewedOn || x?.SignedOn || generatedUTCTime,
-            Signature: x?.Signature || '',
-          };
-        })
+        const data = docDetails.Signers.find(y => y.objectId === x.UserPtr.objectId);
+        return {
+          ...data,
+          ipAddress: x.ipAddress,
+          SignedOn: moment(x?.SignedOn || generatedUTCTime).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss'),
+          ViewedOn: moment(x?.ViewedOn || x?.SignedOn || generatedUTCTime).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss'),
+          Signature: x?.Signature || '',
+        };
+      })
       : [
-          {
-            ...docDetails.ExtUserPtr,
-            ipAddress: docDetails?.AuditTrail[0].ipAddress,
-            SignedOn: docDetails?.AuditTrail[0]?.SignedOn || generatedUTCTime,
-            ViewedOn:
-              docDetails?.AuditTrail[0]?.ViewedOn ||
-              docDetails?.AuditTrail[0]?.SignedOn ||
-              generatedUTCTime,
-            Signature: docDetails?.AuditTrail[0]?.Signature || '',
-          },
-        ];
+        {
+          ...docDetails.ExtUserPtr,
+          ipAddress: docDetails?.AuditTrail[0].ipAddress,
+          SignedOn: moment(docDetails?.AuditTrail[0]?.SignedOn || generatedUTCTime).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss'),
+          ViewedOn: moment(
+            docDetails?.AuditTrail[0]?.ViewedOn ||
+            docDetails?.AuditTrail[0]?.SignedOn ||
+            generatedUTCTime).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss'),
+          Signature: docDetails?.AuditTrail[0]?.Signature || '',
+        },
+      ];
 
   const half = width / 2;
   // Draw a border
@@ -76,14 +77,14 @@ export default async function GenerateCertificate(docDetails) {
   });
 
   page.drawText(generatedOn, {
-    x: 320,
+    x: 400,
     y: 810,
     size: 12,
     font: timesRomanFont,
     color: rgb(0.12, 0.12, 0.12),
   });
 
-  page.drawText('Certificate of Completion', {
+  page.drawText('Certificado de Finalización', {
     x: 160,
     y: 750,
     size: title,
@@ -99,7 +100,7 @@ export default async function GenerateCertificate(docDetails) {
     thickness: 1,
   });
 
-  page.drawText('Summary', {
+  page.drawText('Resumen', {
     x: 30,
     y: 710,
     size: subtitle,
@@ -107,7 +108,7 @@ export default async function GenerateCertificate(docDetails) {
     color: titleColor,
   });
 
-  page.drawText('Document Id :', {
+  page.drawText('Id del Documento:', {
     x: 30,
     y: 685,
     size: text,
@@ -116,14 +117,14 @@ export default async function GenerateCertificate(docDetails) {
   });
 
   page.drawText(docDetails.objectId, {
-    x: 115,
+    x: 137,
     y: 685,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
 
-  page.drawText('Document Name :', {
+  page.drawText('Nombre del Documento:', {
     x: 30,
     y: 665,
     size: text,
@@ -132,14 +133,14 @@ export default async function GenerateCertificate(docDetails) {
   });
 
   page.drawText(docDetails.Name, {
-    x: 140,
+    x: 170,
     y: 665,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
 
-  page.drawText('Organization :', {
+  page.drawText('Compañía:', {
     x: 30,
     y: 645,
     size: text,
@@ -148,13 +149,13 @@ export default async function GenerateCertificate(docDetails) {
   });
 
   page.drawText(company, {
-    x: 115,
+    x: 93,
     y: 645,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
-  page.drawText('Created on :', {
+  page.drawText('Creado el:', {
     x: 30,
     y: 625,
     size: text,
@@ -162,14 +163,14 @@ export default async function GenerateCertificate(docDetails) {
     color: textKeyColor,
   });
 
-  page.drawText(`${new Date(createdAt).toUTCString()}`, {
-    x: 105,
+  page.drawText(`${moment(new Date(createdAt)).tz('America/Santiago').format('DD-MM-YYYY HH:mm:ss')}`, {
+    x: 90,
     y: 625,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
-  page.drawText('Completed on :', {
+  page.drawText('Completado el:', {
     x: 30,
     y: 605,
     size: text,
@@ -178,13 +179,13 @@ export default async function GenerateCertificate(docDetails) {
   });
 
   page.drawText(`${completedUTCtime}`, {
-    x: 125,
+    x: 119,
     y: 605,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
-  page.drawText('Signers :', {
+  page.drawText('Firmantes:', {
     x: 30,
     y: 585,
     size: text,
@@ -193,20 +194,20 @@ export default async function GenerateCertificate(docDetails) {
   });
 
   page.drawText(`${signersCount}`, {
-    x: 80,
+    x: 92,
     y: 585,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
-  page.drawText('Document originator', {
+  page.drawText('Originador del Documento', {
     x: 30,
     y: 565,
     size: 17,
     font: timesRomanFont,
     color: titleColor,
   });
-  page.drawText('Name :', {
+  page.drawText('Nombre:', {
     x: 60,
     y: 545,
     size: text,
@@ -214,7 +215,7 @@ export default async function GenerateCertificate(docDetails) {
     color: textKeyColor,
   });
   page.drawText(`${docDetails.ExtUserPtr.Name}`, {
-    x: 105,
+    x: 111,
     y: 545,
     size: text,
     font: timesRomanFont,
@@ -228,13 +229,13 @@ export default async function GenerateCertificate(docDetails) {
     color: textKeyColor,
   });
   page.drawText(`${docDetails.ExtUserPtr.Email}`, {
-    x: 105,
+    x: 111,
     y: 525,
     size: text,
     font: timesRomanFont,
     color: textValueColor,
   });
-  page.drawText('IP address :', {
+  page.drawText('Dirección IP:', {
     x: 60,
     y: 505,
     size: text,
@@ -242,7 +243,7 @@ export default async function GenerateCertificate(docDetails) {
     color: textKeyColor,
   });
   page.drawText(`${OriginIp}`, {
-    x: 130,
+    x: 138,
     y: 505,
     size: text,
     font: timesRomanFont,
@@ -263,14 +264,14 @@ export default async function GenerateCertificate(docDetails) {
   let yPosition6 = 360;
   auditTrail.slice(0, 3).forEach(async (x, i) => {
     const embedPng = x.Signature ? await pdfDoc.embedPng(x.Signature) : '';
-    page.drawText(`Signer ${i + 1}`, {
+    page.drawText(`Firmante ${i + 1}`, {
       x: 30,
       y: yPosition1,
       size: subtitle,
       font: timesRomanFont,
       color: titleColor,
     });
-    page.drawText('Name :', {
+    page.drawText('Nombre:', {
       x: 30,
       y: yPosition2,
       size: text,
@@ -279,14 +280,14 @@ export default async function GenerateCertificate(docDetails) {
     });
 
     page.drawText(x?.Name, {
-      x: 75,
+      x: 81,
       y: yPosition2,
       size: text,
       font: timesRomanFont,
       color: textValueColor,
     });
 
-    page.drawText('Viewed on :', {
+    page.drawText('Visto el:', {
       x: half + 55,
       y: yPosition2,
       size: timeText,
@@ -294,15 +295,15 @@ export default async function GenerateCertificate(docDetails) {
       color: textKeyColor,
     });
 
-    page.drawText(`${new Date(x.ViewedOn).toUTCString()}`, {
-      x: half + 112,
+    page.drawText(`${x.ViewedOn}`, {
+      x: half + 108,
       y: yPosition2,
       size: timeText,
       font: timesRomanFont,
       color: textValueColor,
     });
 
-    page.drawText('Email :', {
+    page.drawText('Email:', {
       x: 30,
       y: yPosition3,
       size: text,
@@ -311,14 +312,14 @@ export default async function GenerateCertificate(docDetails) {
     });
 
     page.drawText(x?.Email, {
-      x: 75,
+      x: 70,
       y: yPosition3,
       size: text,
       font: timesRomanFont,
       color: textValueColor,
     });
 
-    page.drawText('Signed on :', {
+    page.drawText('Firmado el:', {
       x: half + 55,
       y: yPosition3 + 5,
       size: timeText,
@@ -326,7 +327,7 @@ export default async function GenerateCertificate(docDetails) {
       color: textKeyColor,
     });
 
-    page.drawText(`${new Date(x.SignedOn).toUTCString()}`, {
+    page.drawText(`${x.SignedOn}`, {
       x: half + 108,
       y: yPosition3 + 5,
       size: timeText,
@@ -334,7 +335,7 @@ export default async function GenerateCertificate(docDetails) {
       color: textValueColor,
     });
 
-    page.drawText('IP address :', {
+    page.drawText('Dirección IP:', {
       x: 30,
       y: yPosition4,
       size: text,
@@ -343,29 +344,29 @@ export default async function GenerateCertificate(docDetails) {
     });
 
     page.drawText(x?.ipAddress, {
-      x: 100,
+      x: 107,
       y: yPosition4,
       size: 13,
       font: timesRomanFont,
       color: textValueColor,
     });
     if (IsEnableOTP) {
-      page.drawText('Security level :', {
+      page.drawText('Nivel de seguridad:', {
         x: half + 55,
         y: yPosition4 + 10,
         size: timeText,
         font: timesRomanFont,
         color: textKeyColor,
       });
-      page.drawText('Email, OTP Auth', {
-        x: half + 125,
+      page.drawText('Email, OTP', {
+        x: half + 142,
         y: yPosition4 + 10,
         size: timeText,
         font: timesRomanFont,
         color: textValueColor,
       });
     }
-    page.drawText('Signature :', {
+    page.drawText('Firma:', {
       x: 30,
       y: yPosition5,
       size: text,
@@ -434,14 +435,14 @@ export default async function GenerateCertificate(docDetails) {
         yPosition6 = currentPage.getHeight() - 160;
       }
 
-      currentPage.drawText(`Signer ${4 + i}`, {
+      currentPage.drawText(`Firmante ${4 + i}`, {
         x: 30,
         y: yPosition1,
         size: subtitle,
         font: timesRomanFont,
         color: titleColor,
       });
-      currentPage.drawText('Name :', {
+      currentPage.drawText('Nombre:', {
         x: 30,
         y: yPosition2,
         size: text,
@@ -457,7 +458,7 @@ export default async function GenerateCertificate(docDetails) {
         color: textValueColor,
       });
 
-      currentPage.drawText('Viewed on :', {
+      currentPage.drawText('Visto el:', {
         x: half,
         y: yPosition2,
         size: text,
@@ -465,15 +466,15 @@ export default async function GenerateCertificate(docDetails) {
         color: textKeyColor,
       });
 
-      currentPage.drawText(`${new Date(x.ViewedOn).toUTCString()}`, {
-        x: half + 75,
+      currentPage.drawText(`${x.ViewedOn}`, {
+        x: half + 71,
         y: yPosition2,
         size: text,
         font: timesRomanFont,
         color: textValueColor,
       });
 
-      currentPage.drawText('Email :', {
+      currentPage.drawText('Email:', {
         x: 30,
         y: yPosition3,
         size: text,
@@ -489,7 +490,7 @@ export default async function GenerateCertificate(docDetails) {
         color: textValueColor,
       });
 
-      currentPage.drawText('Signed on :', {
+      currentPage.drawText('Firmado el:', {
         x: half,
         y: yPosition3,
         size: text,
@@ -497,7 +498,7 @@ export default async function GenerateCertificate(docDetails) {
         color: textKeyColor,
       });
 
-      currentPage.drawText(`${new Date(x.SignedOn).toUTCString()}`, {
+      currentPage.drawText(`${x.SignedOn}`, {
         x: half + 70,
         y: yPosition3,
         size: text,
@@ -505,7 +506,7 @@ export default async function GenerateCertificate(docDetails) {
         color: textValueColor,
       });
 
-      currentPage.drawText('IP address :', {
+      currentPage.drawText('Dirección IP:', {
         x: 30,
         y: yPosition4,
         size: text,
@@ -520,7 +521,7 @@ export default async function GenerateCertificate(docDetails) {
         font: timesRomanFont,
         color: textValueColor,
       });
-      currentPage.drawText('Security level :', {
+      currentPage.drawText('Nivel de seguridad:', {
         x: half,
         y: yPosition4,
         size: text,
@@ -528,15 +529,15 @@ export default async function GenerateCertificate(docDetails) {
         color: textKeyColor,
       });
 
-      currentPage.drawText(`Email, OTP Auth`, {
-        x: half + 90,
+      currentPage.drawText(`Email, OTP`, {
+        x: half + 107,
         y: yPosition4,
         size: text,
         font: timesRomanFont,
         color: textValueColor,
       });
 
-      currentPage.drawText('Signature :', {
+      currentPage.drawText('Firmante:', {
         x: 30,
         y: yPosition5,
         size: text,

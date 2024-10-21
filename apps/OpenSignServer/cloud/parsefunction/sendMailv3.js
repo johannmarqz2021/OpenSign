@@ -20,7 +20,7 @@ async function sendMailProvider(req, plan, monthchange) {
         auth: {
           user: process.env.SMTP_USER_EMAIL,
           pass: process.env.SMTP_PASS,
-        },
+        }
       });
     } else {
       if (mailgunApiKey) {
@@ -34,7 +34,7 @@ async function sendMailProvider(req, plan, monthchange) {
       const writeToLocalDisk = () => {
         return new Promise((resolve, reject) => {
           const isSecure = new URL(req.params.url)?.protocol === 'https:';
-          if (useLocal !== 'true' || isSecure) {
+          if (useLocal === 'false' && isSecure) {
             https.get(req.params.url, async function (response) {
               response.pipe(Pdf);
               response.on('end', () => resolve('success'));

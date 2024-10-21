@@ -257,12 +257,9 @@ async function sendMailsaveCertifcate(doc, P12Buffer, isCustomMail, mailProvider
   });
   const pdfWithPlaceholderBytes = await certificatePdf.save();
   const CertificateBuffer = Buffer.from(pdfWithPlaceholderBytes);
-  //`new signPDF` create new instance of CertificateBuffer and p12Buffer
   const certificateOBJ = new SignPdf();
-  // `signedCertificate` is used to sign certificate digitally
   const signedCertificate = await certificateOBJ.sign(CertificateBuffer, p12);
 
-  //below is used to save signed certificate in exports folder
   fs.writeFileSync('./exports/certificate.pdf', signedCertificate);
   const file = await uploadFile('certificate.pdf', './exports/certificate.pdf', adapterConfig);
   const body = { CertificateUrl: file.imageUrl };
@@ -349,7 +346,7 @@ async function PDF(req) {
       const P12Buffer = Buffer.from(pfxFile, 'base64');
       const p12Cert = new P12Signer(P12Buffer, { passphrase: process.env.PASS_PHRASE || null });
       const UserPtr = { __type: 'Pointer', className: className, objectId: signUser.objectId };
-      const obj = { UserPtr: UserPtr, SignedUrl: '', Activity: 'Signed', ipAddress: userIP };
+      const obj = { UserPtr: UserPtr, SignedUrl: '', Activity: 'Signed', ipAddress: userIP, Signature: sign };
       let updateAuditTrail;
       if (_resDoc.AuditTrail && _resDoc.AuditTrail.length > 0) {
         updateAuditTrail = [..._resDoc.AuditTrail, obj];
@@ -373,41 +370,51 @@ async function PDF(req) {
       if (isCompleted) {
         const signersName = _resDoc.Signers?.map(x => x.Name + ' <' + x.Email + '>');
         if (signersName && signersName.length > 0) {
-          //  `pdflibAddPlaceholder` is used to add code of only digitial sign without widget
           const pdfDoc = await PDFDocument.load(PdfBuffer);
+          const pdfWithPlaceholderBytes = await pdfDoc.save();
+          const doc = { ..._resDoc, AuditTrail: auditTrail };
+
+          console.log(doc)
+          const certificate = await GenerateCertificate(doc);
+          const mergedPdf = await PDFDocument.create();
+          const [pdf1, pdf2] = await Promise.all([
+            PDFDocument.load(pdfWithPlaceholderBytes),
+            PDFDocument.load(certificate),
+          ]);
+          const copiedPages1 = await mergedPdf.copyPages(pdf1, pdf1.getPageIndices());
+          const copiedPages2 = await mergedPdf.copyPages(pdf2, pdf2.getPageIndices());
+          copiedPages1.forEach((page) => mergedPdf.addPage(page));
+          copiedPages2.forEach((page) => mergedPdf.addPage(page));
+          const mergedPdfBytes = await mergedPdf.save();
+          PdfBuffer = Buffer.from(mergedPdfBytes);
+          const finalPdfDoc = await PDFDocument.load(PdfBuffer);
+
           pdflibAddPlaceholder({
-            pdfDoc: pdfDoc,
+            pdfDoc: finalPdfDoc,
             reason: 'Digitally signed by OpenSign for ' + signersName?.join(', '),
             location: 'n/a',
             name: eSignName,
             contactInfo: eSigncontact,
             signatureLength: 15000,
           });
-          const pdfWithPlaceholderBytes = await pdfDoc.save();
-          PdfBuffer = Buffer.from(pdfWithPlaceholderBytes);
+          const finalPdfBytes = await finalPdfDoc.save();
+          PdfBuffer = Buffer.from(finalPdfBytes);
         } else {
-          //  `pdflibAddPlaceholder` is used to add code of only digitial sign without widget (signyourself)
           const pdfDoc = await PDFDocument.load(PdfBuffer);
           const pdfWithPlaceholderBytes = await pdfDoc.save();
           const doc = { ..._resDoc, AuditTrail: updateAuditTrail };
           const certificate = await GenerateCertificate(doc);
-          
           const mergedPdf = await PDFDocument.create();
           const [pdf1, pdf2] = await Promise.all([
             PDFDocument.load(pdfWithPlaceholderBytes),
             PDFDocument.load(certificate),
           ]);
-          
           const copiedPages1 = await mergedPdf.copyPages(pdf1, pdf1.getPageIndices());
           const copiedPages2 = await mergedPdf.copyPages(pdf2, pdf2.getPageIndices());
-          
           copiedPages1.forEach((page) => mergedPdf.addPage(page));
           copiedPages2.forEach((page) => mergedPdf.addPage(page));
-          
           const mergedPdfBytes = await mergedPdf.save();
           PdfBuffer = Buffer.from(mergedPdfBytes);
-          
-          // Ahora agregamos el placeholder después de combinar los PDFs
           const finalPdfDoc = await PDFDocument.load(PdfBuffer);
           
           pdflibAddPlaceholder({
@@ -422,25 +429,17 @@ async function PDF(req) {
           const finalPdfBytes = await finalPdfDoc.save();
           PdfBuffer = Buffer.from(finalPdfBytes);
         }
-        //`new signPDF` create new instance of pdfBuffer and p12Buffer
         const OBJ = new SignPdf();
-        // `signedDocs` is used to signpdf digitally
         const signedDocs = await OBJ.sign(PdfBuffer, p12Cert);
 
-        //`saveUrl` is used to save signed pdf in exports folder
         fs.writeFileSync(filePath, signedDocs);
         pdfSize = signedDocs.length;
       } else {
-        //`saveUrl` is used to save signed pdf in exports folder
         fs.writeFileSync(filePath, PdfBuffer);
         pdfSize = PdfBuffer.length;
       }
-
-      // `uploadFile` is used to upload pdf to aws s3 and get it's url
       const data = await uploadFile(name, filePath, adapterConfig);
-
       if (data && data.imageUrl) {
-        // `axios` is used to update signed pdf url in contracts_Document classes for given DocId
         const updatedDoc = await updateDoc(
           req.params.docId, //docId
           data.imageUrl, // SignedUrl
