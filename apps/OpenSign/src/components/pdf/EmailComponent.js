@@ -70,20 +70,19 @@ function EmailComponent({
           pdfName: pdfName,
           url: presignedUrl,
           recipient: emailList[i],
-          subject: `${sender.name} has signed the doc - ${pdfName}`,
+          subject: `${sender.name} ha firmado el documento - ${pdfName}`,
           from: sender.email,
           html:
             "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /></head><body>  <div style='background-color:#f5f5f5;padding:20px'>    <div style='box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background-color:white;'> <div><img src=" +
             imgPng +
-            "  height='50' style='padding:20px,width:170px,height:40px'/> </div><div style='padding:2px;font-family:system-ui; background-color:" +
+            "  height='50' style='padding:20px;width:170px;height:40px'/> </div><div style='padding:2px;font-family:system-ui; background-color:" +
             themeBGcolor +
-            ";'>    <p style='font-size:20px;font-weight:400;color:white;padding-left:20px',>  Document Copy</p></div><div><p style='padding:20px;font-family:system-ui;font-size:14px'>A copy of the document <strong>" +
+            ";'>    <p style='font-size:20px;font-weight:400;color:white;padding-left:20px',>  Copia del Documento</p></div><div><p style='padding:20px;font-family:system-ui;font-size:14px'>Una copia del documento <strong>" +
             pdfName +
-            " </strong>is attached to this email. Kindly download the document from the attachment.</p></div> </div><div><p>This is an automated email from OpenSign™. For any queries regarding this email, please contact the sender " +
+            " </strong>está adjunta a este correo. Por favor, descargue el documento desde el archivo adjunto.</p></div> </div><div><p>Este es un correo electrónico automatizado de Diogma. Para cualquier consulta sobre este correo, por favor contacte al remitente " +
             sender.email +
-            " directly. If you think this email is inappropriate or spam, you may file a complaint with OpenSign™  <a href= " +
-            openSignUrl +
-            " target=_blank>here</a> </p></div></div></body></html>"
+            " directamente. Si considera que este correo es inapropiado o es spam, puede presentar una queja en Diogma </p></div></div></body></html>"
+          
         };
         sendMail = await axios.post(url, params, { headers: headers });
       } catch (error) {

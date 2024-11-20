@@ -541,6 +541,7 @@
   "filed-required-correctly": "Please fill required details correctly.",
   "admin-created": "Admin created",
   "invalid-masterkey": "Invalid masterkey",
+  "invalid-token": "The token is not valid or has expired.",
   "opensign-Setup": "OpenSign Setup",
   "master-key": " Master key",
   "profile-update-alert": "Profile updated successfully.",

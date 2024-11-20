@@ -73,6 +73,7 @@ import deactivateMailAdapter from './parsefunction/deactivateMailAdapter.js';
 import addFileAdapter from './parsefunction/addFileAdapter.js';
 import saveToFileAdapter from './parsefunction/saveToFileAdapter.js';
 import getFileAdapter from './parsefunction/getFileAdapter.js';
+import resetPassword from './parsefunction/resetPassword.js';
 
 // This afterSave function triggers after an object is added or updated in the specified class, allowing for post-processing logic.
 Parse.Cloud.afterSave('contracts_Document', DocumentAftersave);
@@ -158,3 +159,5 @@ Parse.Cloud.define('deactivatemailadapter', deactivateMailAdapter);
 Parse.Cloud.define('savetofileadapter', saveToFileAdapter);
 Parse.Cloud.define('addfileadapter', addFileAdapter);
 Parse.Cloud.define('getfileadapter', getFileAdapter);
+Parse.Cloud.define('restartpassword', resetPassword);
+

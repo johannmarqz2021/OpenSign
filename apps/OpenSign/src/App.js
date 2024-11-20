@@ -23,6 +23,7 @@ import UserList from "./pages/UserList";
 import { serverUrl_fn } from "./constant/appinfo";
 const DebugPdf = lazy(() => import("./pages/DebugPdf"));
 const ForgetPassword = lazy(() => import("./pages/ForgetPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const GuestLogin = lazy(() => import("./pages/GuestLogin"));
 const Pgsignup = lazy(() => import("./pages/Pgsignup"));
 const Subscriptions = lazy(() => import("./pages/PlanSubscriptions"));
@@ -123,6 +124,10 @@ function App() {
             <Route
               path="/forgetpassword"
               element={<LazyPage Page={ForgetPassword} />}
+            />
+            <Route
+              path="/resetpassword"
+              element={<LazyPage Page={ResetPassword} />}
             />
             {isEnableSubscription && (
               <>

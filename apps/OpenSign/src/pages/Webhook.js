@@ -107,7 +107,7 @@ function Webhook() {
         <>
           <div className="bg-base-100 text-base-content flex flex-col justify-center shadow-md rounded-box mb-3">
             <h1 className={"ml-4 mt-3 mb-2 font-semibold"}>
-              OpenSign™ {t("webhook")}{" "}
+              Diogma {t("webhook")}{" "}
               <Tooltip
                 url={"https://docs.opensignlabs.com/docs/API-docs/get-webhook"}
                 isSubscribe={true}

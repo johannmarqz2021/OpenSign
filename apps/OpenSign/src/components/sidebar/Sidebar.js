@@ -176,9 +176,9 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
           )}
         </ul>
       </nav>
-      <footer className="mt-4 flex justify-center items-center text-[25px] text-base-content gap-3">
+      {/* <footer className="mt-4 flex justify-center items-center text-[25px] text-base-content gap-3">
         <SocialMedia />
-      </footer>
+      </footer> */}
     </aside>
   );
 };

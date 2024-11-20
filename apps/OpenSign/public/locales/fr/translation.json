@@ -540,6 +540,7 @@
   "filed-required-correctly": "Veuillez remplir correctement les informations requises.",
   "admin-created": "Administrateur créé",
   "invalid-masterkey": "Clé principale invalide",
+  "invalid-token": "Le jeton n'est pas valide ou a expiré.",
   "opensign-Setup": "Configuration d'OpenSign",
   "master-key": "La clef maitresse",
   "profile-update-alert": "Mise à jour du profil réussie.",

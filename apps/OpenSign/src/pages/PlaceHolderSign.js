@@ -191,8 +191,8 @@ function PlaceHolderSign() {
     );
     if (user) {
       try {
-        const defaultRequestBody = `<p>Hi {{receiver_name}},</p><br><p>We hope this email finds you well. {{sender_name}}&nbsp;has requested you to review and sign&nbsp;{{document_title}}.</p><p>Your signature is crucial to proceed with the next steps as it signifies your agreement and authorization.</p><br><p>{{signing_url}}</p><br><p>If you have any questions or need further clarification regarding the document or the signing process,  please contact the sender.</p><br><p>Thanks</p><p> Team OpenSign™</p><br>`;
-        const defaultSubject = `{{sender_name}} has requested you to sign {{document_title}}`;
+        const defaultRequestBody = `<p>Hola {{receiver_name}},</p><br><p>Esperamos que este correo te encuentre bien. {{sender_name}} te ha solicitado que revises y firmes {{document_title}}.</p><p>Tu firma es crucial para proceder con los siguientes pasos, ya que significa tu acuerdo y autorización.</p><br><p>{{signing_url}}</p><br><p>Si tienes alguna pregunta o necesitas más aclaraciones sobre el documento o el proceso de firma, por favor contacta al remitente.</p><br><p>Gracias</p><p> Equipo de Diogma</p><br>`;
+        const defaultSubject = `{{sender_name}} te ha solicitado que firmes {{document_title}}`;        
         setDefaultBody(defaultRequestBody);
         setDefaultSubject(defaultSubject);
         setRequestBody(defaultRequestBody);
@@ -1121,7 +1121,7 @@ function PlaceHolderSign() {
             receiver_phone: signerMail[i]?.Phone || "",
             expiry_date: localExpireDate,
             company_name: orgName,
-            signing_url: `<a href=${signPdf} target=_blank>Sign here</a>`
+            signing_url: `<a href=${signPdf} target=_blank>Firmar aquí</a>`
           };
           replaceVar = replaceMailVaribles(
             requestSubject,
@@ -1135,33 +1135,32 @@ function PlaceHolderSign() {
           extUserId: extUserId,
           recipient: signerMail[i].Email,
           subject: isCustomize
-            ? replaceVar?.subject
-            : `${senderName} has requested you to sign "${documentName}"`,
-          from: senderEmail,
-          plan: planCode,
-          html: isCustomize
-            ? replaceVar?.body
-            : "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /> </head>   <body> <div style='background-color: #f5f5f5; padding: 20px'=> <div   style=' box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background: white;padding-bottom: 20px;'> <div style='padding:10px 10px 0 10px'><img src=" +
-              imgPng +
-              " height='50' style='padding: 20px,width:170px,height:40px' /></div>  <div  style=' padding: 2px;font-family: system-ui;background-color:" +
-              themeBGcolor +
-              ";'><p style='font-size: 20px;font-weight: 400;color: white;padding-left: 20px;' > Digital Signature Request</p></div><div><p style='padding: 20px;font-family: system-ui;font-size: 14px;   margin-bottom: 10px;'> " +
-              pdfDetails?.[0].ExtUserPtr.Name +
-              " has requested you to review and sign <strong> " +
-              pdfDetails?.[0].Name +
-              "</strong>.</p><div style='padding: 5px 0px 5px 25px;display: flex;flex-direction: row;justify-content: space-around;'><table> <tr> <td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Sender</td> <td> </td> <td  style='color:#626363;font-weight:bold'>" +
-              senderEmail +
-              "</td></tr><tr><td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Organization</td> <td> </td><td style='color:#626363;font-weight:bold'> " +
-              orgName +
-              "</td></tr> <tr> <td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Expire on</td><td> </td> <td style='color:#626363;font-weight:bold'>" +
-              localExpireDate +
-              "</td></tr><tr> <td></td> <td> </td></tr></table> </div> <div style='margin-left:70px'><a target=_blank href=" +
-              signPdf +
-              "> <button style='padding: 12px 12px 12px 12px;background-color: #d46b0f;color: white;  border: 0px;box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;font-weight:bold;margin-top:30px'>Sign here</button></a> </div> <div style='display: flex; justify-content: center;margin-top: 10px;'> </div></div></div><div><p> This is an automated email from OpenSign™. For any queries regarding this email, please contact the sender " +
-              senderEmail +
-              " directly.If you think this email is inappropriate or spam, you may file a complaint with OpenSign™   <a href= " +
-              openSignUrl +
-              " target=_blank>here</a>.</p> </div></div></body> </html>"
+          ? replaceVar?.subject
+          : `${senderName} te ha solicitado que firmes "${documentName}"`,
+        from: senderEmail,
+        plan: planCode,
+        html: isCustomize
+          ? replaceVar?.body
+          : "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /> </head>   <body> <div style='background-color: #f5f5f5; padding: 20px'> <div   style=' box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background: white;padding-bottom: 20px;'> <div style='padding:10px 10px 0 10px'><img src=" +
+            imgPng +
+            " height='50' style='padding: 20px,width:170px,height:40px' /></div>  <div  style=' padding: 2px;font-family: system-ui;background-color:" +
+            themeBGcolor +
+            ";'><p style='font-size: 20px;font-weight: 400;color: white;padding-left: 20px;' > Solicitud de Firma Digital</p></div><div><p style='padding: 20px;font-family: system-ui;font-size: 14px;   margin-bottom: 10px;'> " +
+            pdfDetails?.[0].ExtUserPtr.Name +
+            " te ha solicitado que revises y firmes <strong> " +
+            pdfDetails?.[0].Name +
+            "</strong>.</p><div style='padding: 5px 0px 5px 25px;display: flex;flex-direction: row;justify-content: space-around;'><table> <tr> <td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Remitente</td> <td> </td> <td  style='color:#626363;font-weight:bold'>" +
+            senderEmail +
+            "</td></tr><tr><td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Organización</td> <td> </td><td style='color:#626363;font-weight:bold'> " +
+            orgName +
+            "</td></tr> <tr> <td style='font-weight:bold;font-family:sans-serif;font-size:15px'>Expira el</td><td> </td> <td style='color:#626363;font-weight:bold'>" +
+            localExpireDate +
+            "</td></tr><tr> <td></td> <td> </td></tr></table> </div> <div style='margin-left:70px'><a target=_blank href=" +
+            signPdf +
+            "> <button style='padding: 12px 12px 12px 12px;background-color: #d46b0f;color: white;  border: 0px;box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;font-weight:bold;margin-top:30px'>Firmar aquí</button></a> </div> <div style='display: flex; justify-content: center;margin-top: 10px;'> </div></div></div><div><p> Este es un correo automatizado de Diogma. Si tienes alguna consulta sobre este correo, por favor contacta directamente al remitente " +
+            senderEmail +
+            " .Si consideras que este correo es inapropiado o spam, puedes presentar una queja a Diogma.</p> </div></div></body> </html>"
+        
         };
 
         sendMail = await axios.post(url, params, { headers: headers });

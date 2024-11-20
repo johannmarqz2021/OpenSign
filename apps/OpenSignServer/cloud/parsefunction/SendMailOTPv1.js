@@ -31,10 +31,10 @@ async function sendMailOTPv1(request) {
         await Parse.Cloud.sendEmail({
           from: appName + ' <' + mailsender + '>',
           recipient: recipient,
-          subject: `Your ${appName} OTP`,
-          text: 'This email is a test.',
+          subject: `Tu ${appName} OTP`,
+          text: 'Este mail es una prueba.',
           html:
-            `<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /></head><body><div style='background-color:#f5f5f5;padding:20px'><div style='box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background-color:white;'><div style='background-color:red;padding:2px;font-family:system-ui; background-color:#47a3ad;'>    <p style='font-size:20px;font-weight:400;color:white;padding-left:20px',>OTP Verification</p></div><div style='padding:20px'><p style='font-family:system-ui;font-size:14px'>Your OTP for ${appName} verification is:</p><p style=' text-decoration: none; font-weight: bolder; color:blue;font-size:45px;margin:20px'>` +
+            `<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /></head><body><div style='background-color:#f5f5f5;padding:20px'><div style='box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background-color:white;'><div style='background-color:red;padding:2px;font-family:system-ui; background-color:#47a3ad;'>    <p style='font-size:20px;font-weight:400;color:white;padding-left:20px',>Verificación OTP</p></div><div style='padding:20px'><p style='font-family:system-ui;font-size:14px'>Tu código OTP para la verificación de ${appName} es:</p><p style=' text-decoration: none; font-weight: bolder; color:blue;font-size:45px;margin:20px'>` +
             code +
             '</p></div> </div> </div></body></html>',
         });

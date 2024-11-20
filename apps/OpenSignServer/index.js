@@ -19,6 +19,7 @@ import { app as v1 } from './cloud/customRoute/v1/apiV1.js';
 import { PostHog } from 'posthog-node';
 import { appName, cloudServerUrl, smtpenable, smtpsecure, useLocal } from './Utils.js';
 import { SSOAuth } from './auth/authadapter.js';
+
 let fsAdapter;
 if (useLocal !== 'true') {
   try {
@@ -86,6 +87,7 @@ if (smtpenable) {
     console.log('Please provide valid Mailgun credentials');
   }
 }
+const baseUrl = new URL(process.env.PUBLIC_URL);
 const mailsender = smtpenable ? process.env.SMTP_SENDER : process.env.MAILGUN_SENDER;
 export const config = {
   databaseURI:
@@ -104,6 +106,9 @@ export const config = {
   publicServerURL: process.env.SERVER_URL || cloudServerUrl,
   // Your apps name. This will appear in the subject and body of the emails that are sent.
   appName: appName,
+  customPages: {
+    choosePassword: `${baseUrl}resetpassword`,
+  },
   allowClientClassCreation: false,
   allowExpiredAuthDataToken: false,
   encodeParseObjectInCloudFunction: true,

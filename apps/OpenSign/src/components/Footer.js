@@ -39,7 +39,7 @@ const Footer = () => {
     };
   }, []);
 
-  const appName = "OpenSign™";
+  const appName = "Diogma";
   const openUrl = () => {
     openInNewTab(
       "https://github.com/OpenSignLabs/OpenSign/releases/tag/" + version
@@ -51,7 +51,7 @@ const Footer = () => {
         <aside>
           <p>
             {t("all-right")} &copy; {new Date().getFullYear()} &nbsp;
-            <span onClick={openUrl} className="hover:underline cursor-pointer">
+            <span>
               {appName} ( {t("version")}:{" "}
               {version ? version : `${Package.version} `})
             </span>

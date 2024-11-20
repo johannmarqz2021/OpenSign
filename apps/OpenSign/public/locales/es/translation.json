@@ -535,6 +535,7 @@
   "filed-required-correctly": "Por favor, rellena correctamente los detalles requeridos.",
   "admin-created": "Administrador creado",
   "invalid-masterkey": "Llave maestra inválida",
+  "invalid-token": "El token es invalido o ha expirado",
   "opensign-Setup": "Instalación de Diogma",
   "master-key": " Llave maestra",
   "profile-update-alert": "Perfil actualizado exitosamente.",

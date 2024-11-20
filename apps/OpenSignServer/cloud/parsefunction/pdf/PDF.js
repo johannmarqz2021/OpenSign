@@ -104,16 +104,16 @@ async function sendCompletedMail(obj) {
   const mailLogo = 'https://qikinnovation.ams3.digitaloceanspaces.com/logo.png';
   const recipient =
     doc?.Signers?.length > 0 ? doc?.Signers?.map(x => x?.Email)?.join(',') : sender.Email;
-  let subject = `Document "${pdfName}" has been signed by all parties`;
-  let body =
-    "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /></head><body>  <div style='background-color:#f5f5f5;padding:20px'>    <div style='box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background-color:white;'> <div><img src=" +
-    mailLogo +
-    "  height='50' style='padding:20px'/> </div><div style='padding:2px;font-family:system-ui; background-color: #47a3ad;'>    <p style='font-size:20px;font-weight:400;color:white;padding-left:20px',> Document signed successfully</p></div><div><p style='padding:20px;font-family:system-ui;font-size:14px'>All parties have successfully signed the document " +
-    `<b>"${pdfName}"</b>` +
-    '. Kindly download the document from the attachment.</p></div> </div><div><p>This is an automated email from OpenSign™. For any queries regarding this email, please contact the sender ' +
-    sender.Email +
-    ' directly. If you think this email is inappropriate or spam, you may file a complaint with OpenSign™ <a href=www.opensignlabs.com target=_blank>here</a>.</p></div></div></body></html>';
-
+    let subject = `El documento "${pdfName}" ha sido firmado por todas las partes`;
+    let body =
+      "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /></head><body>  <div style='background-color:#f5f5f5;padding:20px'>    <div style='box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background-color:white;'> <div><img src=" +
+      mailLogo +
+      "  height='50' style='padding:20px'/> </div><div style='padding:2px;font-family:system-ui; background-color: #47a3ad;'>    <p style='font-size:20px;font-weight:400;color:white;padding-left:20px',> Documento firmado exitosamente</p></div><div><p style='padding:20px;font-family:system-ui;font-size:14px'>Todas las partes han firmado exitosamente el documento " +
+      `<b>"${pdfName}"</b>` +
+      '. Por favor, descargue el documento desde el archivo adjunto.</p></div> </div><div><p>Este es un correo electrónico automático de Diogma. Para cualquier consulta relacionada con este correo, por favor contacte directamente al remitente ' +
+      sender.Email +
+      '. Si cree que este correo es inapropiado o spam, puede presentar una queja con Diogma.</p></div></div></body></html>';
+    
   if (obj?.isCustomMail) {
     try {
       const tenantCreditsQuery = new Parse.Query('partners_Tenant');
@@ -161,7 +161,7 @@ async function sendCompletedMail(obj) {
   const params = {
     extUserId: sender.objectId,
     url: url,
-    from: 'OpenSign™',
+    from: 'Diogma',
     recipient: recipient,
     subject: subject,
     pdfName: pdfName,

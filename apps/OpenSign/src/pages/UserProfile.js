@@ -418,14 +418,14 @@ function UserProfile() {
               {isAlert.message}
             </Alert>
           )}
-          <Tour
+          {/* <Tour
             className="md:!min-w-[650px]"
             onRequestClose={closeTour}
             steps={tourConfig}
             isOpen={!isProfileTour}
             rounded={5}
             closeWithMask={false}
-          />
+          /> */}
           <div className="bg-base-100 text-base-content flex flex-col justify-center shadow-md rounded-box w-[450px]">
             <div className="flex flex-col justify-center items-center my-4">
               <div className="w-[200px] h-[200px] overflow-hidden rounded-full">
@@ -553,7 +553,7 @@ function UserProfile() {
                   )}
                 </span>
               </li>
-              {isEnableSubscription && (
+              {/* {isEnableSubscription && (
                 <>
                   <li className="flex flex-row justify-between md:items-center border-t-[1px] border-gray-300 py-2 break-all">
                     <span className="font-semibold flex gap-1">
@@ -624,7 +624,7 @@ function UserProfile() {
                     </div>
                   </li>
                 </>
-              )}
+              )} */}
               {isEnableSubscription && (
                 <li className="border-y-[1px] border-gray-300 break-all">
                   <div className="flex justify-between items-center py-2">
