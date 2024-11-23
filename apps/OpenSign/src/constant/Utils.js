@@ -1686,7 +1686,7 @@ export const multiSignEmbed = async (
   } else {
     return {
       error:
-        "This pdf is not compatible with opensign please contact <support@opensignlabs.com>"
+        "This pdf is not compatible with opensign please contact <soporte@diogma.com>"
     };
   }
 };

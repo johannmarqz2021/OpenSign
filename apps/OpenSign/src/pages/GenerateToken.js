@@ -343,7 +343,7 @@ function GenerateToken() {
               </div>
               <hr />
             </ul>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-0 md:gap-1">
+            {/* <div className="flex flex-col md:flex-row items-center justify-center gap-0 md:gap-1">
               <button
                 type="button"
                 onClick={() =>
@@ -362,7 +362,7 @@ function GenerateToken() {
               >
                 {t("buy-credits")}
               </button>
-            </div>
+            </div> */}
             <ModalUi
               isOpen={isModal.generateapi}
               title={apiToken ? t("regenerate-token") : t("generate-token")}

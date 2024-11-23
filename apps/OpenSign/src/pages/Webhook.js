@@ -108,10 +108,10 @@ function Webhook() {
           <div className="bg-base-100 text-base-content flex flex-col justify-center shadow-md rounded-box mb-3">
             <h1 className={"ml-4 mt-3 mb-2 font-semibold"}>
               Diogma {t("webhook")}{" "}
-              <Tooltip
+              {/* <Tooltip
                 url={"https://docs.opensignlabs.com/docs/API-docs/get-webhook"}
                 isSubscribe={true}
-              />
+              /> */}
             </h1>
             <ul className={"w-full flex flex-col p-2 text-sm"}>
               <li className="flex flex-col md:flex-row justify-between items-center border-y-[1px] border-gray-300 break-all py-2">
@@ -130,7 +130,7 @@ function Webhook() {
                 </button>
               </li>
             </ul>
-            <div className="flex items-center justify-center">
+            {/* <div className="flex items-center justify-center">
               <button
                 type="button"
                 onClick={() =>
@@ -142,7 +142,7 @@ function Webhook() {
               >
                 {t("view-docs")}
               </button>
-            </div>
+            </div> */}
             <ModalUi
               isOpen={isModal}
               title={t("add-webhook")}

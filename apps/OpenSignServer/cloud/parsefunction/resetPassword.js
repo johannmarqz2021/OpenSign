@@ -2,7 +2,7 @@ export default async function resetPassword(request) {
     const { token, password } = request.params;
     try {
         const query = new Parse.Query(Parse.User);
-        query.equalTo('_perishable_token', token); // Asumiendo que guardas un token de restablecimiento en el usuario
+        query.equalTo('_perishable_token', token);
         const user = await query.first({ useMasterKey: true });
         if (!user) {
             throw new Parse.Error(404, 'Token no válido o usuario no encontrado');

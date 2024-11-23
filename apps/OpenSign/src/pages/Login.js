@@ -755,18 +755,18 @@ function Login() {
                       )}
                     </div>
                   </form>
-                  {(appInfo.googleClietId || isEnableSubscription) && (
+                  {/* {(appInfo.googleClietId || isEnableSubscription) && (
                     <div className="op-divider my-4 text-sm">{t("or")}</div>
                   )}
                   <div className="flex flex-col justify-center items-center gap-y-3">
-                    {/* {appInfo?.fbAppId && (
+                    {appInfo?.fbAppId && (
                       <LoginFacebook
                         FBCred={appInfo.fbAppId}
                         thirdpartyLoginfn={thirdpartyLoginfn}
                         thirdpartyLoader={state.thirdpartyLoader}
                         setThirdpartyLoader={setThirdpartyLoader}
                       />
-                    )} */}
+                    )}
                     {appInfo?.googleClietId && (
                       <GoogleSignInBtn
                         GoogleCred={appInfo.googleClietId}
@@ -783,7 +783,7 @@ function Login() {
                         {t("sign-SSO")}
                       </div>
                     )}
-                  </div>
+                  </div> */}
                 </div>
                 {width >= 768 && (
                   <div className="place-self-center">
