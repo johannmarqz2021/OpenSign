@@ -1085,7 +1085,7 @@ export const embedDocId = async (pdfDoc, documentId, allPages) => {
   const font = await pdfDoc.embedFont(fontBytes, { subset: true });
   for (let i = 0; i < allPages; i++) {
     const fontSize = 10;
-    const textContent = documentId && `Token: ${documentId} `;
+    const textContent = documentId && `Id del documento: ${documentId} `;
     const pages = pdfDoc.getPages();
     const page = pages[i];
     try {

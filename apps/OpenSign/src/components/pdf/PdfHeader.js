@@ -96,11 +96,7 @@ function Header({
                     <DropdownMenu.Item
                       className="DropdownMenuItem"
                       onClick={() => {
-                        if (isCompleted) {
-                          setIsDownloadModal(true);
-                        } else {
                           handleDownloadPdf(pdfDetails, setIsDownloading);
-                        }
                       }}
                     >
                       <div className="flex flex-row">
@@ -111,7 +107,7 @@ function Header({
                         {t("download")}
                       </div>
                     </DropdownMenu.Item>
-                    {isCompleted && (
+                    {/* {isCompleted && (
                       <DropdownMenu.Item
                         className="DropdownMenuItem"
                         onClick={() =>
@@ -129,7 +125,7 @@ function Header({
                           {t("certificate")}
                         </div>
                       </DropdownMenu.Item>
-                    )}
+                    )} */}
                     {isSignYourself && (
                       <DropdownMenu.Item
                         className="DropdownMenuItem"
@@ -369,7 +365,7 @@ function Header({
                   ></i>
                   <span className="hidden lg:block">{t("print")}</span>
                 </button>
-                {isCompleted && (
+                {/* {isCompleted && (
                   <button
                     type="button"
                     onClick={() =>
@@ -383,16 +379,14 @@ function Header({
                     ></i>
                     <span className="hidden lg:block">{t("certificate")}</span>
                   </button>
-                )}
+                )} */}
                 <button
                   type="button"
                   className="op-btn op-btn-primary op-btn-sm mr-[3px] shadow"
                   onClick={() => {
-                    if (isCompleted) {
-                      setIsDownloadModal(true);
-                    } else {
+
                       handleDownloadPdf(pdfDetails, setIsDownloading);
-                    }
+                    
                   }}
                 >
                   <i
@@ -457,7 +451,7 @@ function Header({
             )
           ) : isCompleted ? (
             <div className="flex flex-row">
-              {isCompleted && (
+              {/* {isCompleted && (
                 <button
                   type="button"
                   onClick={() =>
@@ -470,7 +464,7 @@ function Header({
                     {t("certificate")}
                   </span>
                 </button>
-              )}
+              )} */}
               <button
                 onClick={(e) =>
                   handleToPrint(e, pdfUrl, setIsDownloading, pdfDetails)

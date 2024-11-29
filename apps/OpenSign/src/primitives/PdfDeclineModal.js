@@ -21,8 +21,23 @@ function CustomModal(props) {
                 className="op-btn op-btn-primary "
                 onClick={() => props.handleDownloadBtn()}
               >
-                Download
+                {t(`context-menu.Download`)}
+
               </button>
+            </div>
+          )}
+          {props.close && (
+            <div className="flex justify-start w-full ml-[20px] mb-3 mt-1">
+                <button
+                  type="button"
+                  className="op-btn op-btn-secondary"
+                  onClick={() => {
+                    setReason("");
+                    props.setIsDecline({ isDeclined: false });
+                  }}
+                >
+                  {t("close")}
+                </button>
             </div>
           )}
           {props.footerMessage && (
@@ -30,7 +45,7 @@ function CustomModal(props) {
               <div className="mx-3">
                 <textarea
                   rows={3}
-                  placeholder="Reason (optional)"
+                  placeholder="Razón (opcional)"
                   className="px-4 op-textarea op-textarea-bordered focus:outline-none hover:border-base-content w-full text-xs"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}

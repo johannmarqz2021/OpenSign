@@ -272,7 +272,7 @@ const AddSigner = (props) => {
           </div>
           <div className="mt-4 flex gap-x-2 justify-start">
             <button type="submit" className="op-btn op-btn-primary">
-              {t("submit")}
+              {t("save")}
             </button>
             <button
               type="button"

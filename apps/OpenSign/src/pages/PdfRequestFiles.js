@@ -33,7 +33,8 @@ import {
   getDefaultSignature,
   onClickZoomIn,
   onClickZoomOut,
-  fetchUrl
+  fetchUrl,
+  handleDownloadPdf
 } from "../constant/Utils";
 import Header from "../components/pdf/PdfHeader";
 import RenderPdf from "../components/pdf/RenderPdf";
@@ -1777,6 +1778,7 @@ function PdfRequestFiles(props) {
                   footerMessage={isDecline.currnt === "Sure"}
                   declineDoc={declineDoc}
                   setIsDecline={setIsDecline}
+                  close={true}
                 />
                 {/* this modal is used for show expired alert */}
                 <PdfDeclineModal
@@ -2027,7 +2029,7 @@ function PdfRequestFiles(props) {
                                 {t("print")}
                               </span>
                             </button>
-                            <button
+                            {/* <button
                               type="button"
                               onClick={() =>
                                 handleDownloadCertificate(
@@ -2044,16 +2046,13 @@ function PdfRequestFiles(props) {
                               <span className="hidden lg:block">
                                 {t("certificate")}
                               </span>
-                            </button>
+                            </button> */}
                             <button
                               type="button"
                               className="font-[500] text-[13px] mr-[5px] op-btn op-btn-primary"
                               onClick={() => {
-                                setIsCompleted((prev) => ({
-                                  ...prev,
-                                  isModal: false
-                                }));
-                                setIsDownloadModal(true);
+                                handleDownloadPdf(pdfDetails, setIsDownloading)
+
                               }}
                             >
                               <i

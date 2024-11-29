@@ -1985,7 +1985,7 @@ const ReportTable = (props) => {
                                 <div className="mt-2">
                                   <textarea
                                     rows={3}
-                                    placeholder="Reason (optional)"
+                                    placeholder="Razón (opcional)"
                                     className="px-4 op-textarea op-textarea-bordered focus:outline-none hover:border-base-content w-full text-xs"
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
