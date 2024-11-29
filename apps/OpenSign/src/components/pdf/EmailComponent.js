@@ -54,7 +54,7 @@ function EmailComponent({
     for (let i = 0; i < emailList.length; i++) {
       try {
         const imgPng =
-          "https://qikinnovation.ams3.digitaloceanspaces.com/logo.png";
+          "https://www.diogma.com/static/media/logo.997442af87fcf186f84d.png";
 
         let url = `${localStorage.getItem("baseUrl")}functions/sendmailv3`;
         const headers = {

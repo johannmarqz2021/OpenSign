@@ -101,7 +101,7 @@ async function sendCompletedMail(obj) {
   const doc = obj.doc;
   const sender = obj.doc.ExtUserPtr;
   const pdfName = doc.Name;
-  const mailLogo = 'https://qikinnovation.ams3.digitaloceanspaces.com/logo.png';
+  const mailLogo = 'https://www.diogma.com/static/media/logo.997442af87fcf186f84d.png';
   const recipient =
     doc?.Signers?.length > 0 ? doc?.Signers?.map(x => x?.Email)?.join(',') : sender.Email;
     let subject = `El documento "${pdfName}" ha sido firmado por todas las partes`;
