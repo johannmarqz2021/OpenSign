@@ -226,7 +226,7 @@ const TeamList = () => {
   };
   return (
     <div className="relative">
-      <Title title={"Teams"} />
+      <Title title={"Equipos"} />
       {isLoader && (
         <div className="absolute w-full h-[300px] md:h-[400px] flex justify-center items-center z-30 rounded-box">
           <Loader />

@@ -145,7 +145,7 @@ const PlanSubscriptions = () => {
   };
   return (
     <>
-      <Title title={"Subscriptions"} />
+      <Title title={"Suscripciones"} />
       {isLoader ? (
         <div className="flex items-center justify-center h-screen">
           <Loader />

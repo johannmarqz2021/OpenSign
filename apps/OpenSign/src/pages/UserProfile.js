@@ -406,7 +406,7 @@ function UserProfile() {
   };
   return (
     <React.Fragment>
-      <Title title={"Profile"} />
+      <Title title={"Perfiles"} />
       {isLoader ? (
         <div className="h-[100vh] flex justify-center items-center">
           <Loader />

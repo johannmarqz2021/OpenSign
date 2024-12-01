@@ -1178,7 +1178,7 @@ function SignYourSelf() {
   };
   return (
     <DndProvider backend={HTML5Backend}>
-      <Title title={"Self Sign"} />
+      <Title title={"Firma Propia"} />
       {isLoading.isLoad ? (
         <LoaderWithMsg isLoading={isLoading} />
       ) : handleError ? (

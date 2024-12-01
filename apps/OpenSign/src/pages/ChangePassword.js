@@ -56,7 +56,7 @@ function ChangePassword() {
   }
   return (
     <div className="w-full bg-base-100 text-base-content shadow rounded-box p-2">
-      <Title title="Change Password" />
+      <Title title="Cambiar Contraseña" />
       <div className="text-xl font-bold border-b-[1px] border-gray-300">
         {t("change-password")}
       </div>

@@ -1698,7 +1698,7 @@ function PdfRequestFiles(props) {
   };
   return (
     <DndProvider backend={HTML5Backend}>
-      <Title title={props.templateId ? "Public Sign" : "Request Sign"} />
+      <Title title={props.templateId ? "Firma Pública" : "Solicitar Firma"} />
       {isSubscriptionExpired ? (
         <ModalUi
           title={t("subscription-expired")}

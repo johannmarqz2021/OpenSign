@@ -57,7 +57,7 @@ const Dashboard = () => {
 
   return (
     <React.Fragment>
-      <Title title="Dashboard" />
+      <Title title="Panel" />
       {loading ? (
         <div className="h-[300px] w-full bg-white flex justify-center items-center rounded-md">
           <Loader />

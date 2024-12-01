@@ -257,7 +257,7 @@ const AddAdmin = () => {
   };
   return (
     <div className="h-screen flex justify-center">
-      <Title title="Add admin" />
+      <Title title="Agregar Administrador" />
       {state.loading ? (
         <div className="text-[grey] flex justify-center items-center text-lg md:text-2xl">
           <Loader />

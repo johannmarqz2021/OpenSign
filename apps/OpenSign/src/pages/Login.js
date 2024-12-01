@@ -629,7 +629,7 @@ function Login() {
     </div>
   ) : (
     <div>
-      <Title title={"Login Page"} />
+      <Title title={"Página de Inicio de Sesión"} />
       {state.loading && (
         <div
           aria-live="assertive"

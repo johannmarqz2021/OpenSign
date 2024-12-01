@@ -326,7 +326,7 @@ const Signup = () => {
           <Loader />
         </div>
       )}
-      <Title title="Signup page" />
+      <Title title="Página de Registro" />
       {appInfo && appInfo.applogo ? (
         <div className="md:p-10 lg:p-16">
           <div className="md:p-4 lg:p-10 p-4 bg-base-100 text-base-content op-card">

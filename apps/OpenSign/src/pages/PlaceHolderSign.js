@@ -1720,7 +1720,7 @@ function PlaceHolderSign() {
   };
   return (
     <>
-      <Title title={state?.title ? state.title : "New Document"} />
+      <Title title={state?.title ? state.title : "Nuevo Documento"} />
       <DndProvider backend={HTML5Backend}>
         {isLoading.isLoad ? (
           <LoaderWithMsg isLoading={isLoading} />
