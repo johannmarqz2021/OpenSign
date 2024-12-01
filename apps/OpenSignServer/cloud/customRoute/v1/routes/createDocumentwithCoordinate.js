@@ -308,7 +308,7 @@ export default async function createDocumentwithCoordinate(request, response) {
               }
               for (let i = 0; i < contactMail.length; i++) {
                 try {
-                  const imgPng = 'https://qikinnovation.ams3.digitaloceanspaces.com/logo.png';
+                  const imgPng = 'https://i.ibb.co/Tc1Lnq9/logo.png';
                   let url = `${cloudServerUrl}/functions/sendmailv3/`;
                   const headers = {
                     'Content-Type': 'application/json',

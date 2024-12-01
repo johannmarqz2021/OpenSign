@@ -967,7 +967,7 @@ function PdfRequestFiles(props) {
 
                       try {
                         const imgPng =
-                          "https://www.diogma.com/static/media/logo.997442af87fcf186f84d.png";
+                          "https://i.ibb.co/Tc1Lnq9/logo.png";
                         let url = `${localStorage.getItem(
                           "baseUrl"
                         )}functions/sendmailv3`;

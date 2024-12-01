@@ -146,7 +146,7 @@ const sendMailToAllSigners = async docId => {
                 month: 'long',
                 year: 'numeric',
               });
-              const imgPng = 'https://qikinnovation.ams3.digitaloceanspaces.com/logo.png';
+              const imgPng = 'https://i.ibb.co/Tc1Lnq9/logo.png';
               const objectId = signerMail[i].objectId;
               const hostPublicUrl = 'https://app.opensignlabs.com';
 

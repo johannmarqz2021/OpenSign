@@ -44,7 +44,7 @@ export default async function resendMail(request, response) {
         const activeMailAdapter = _resDoc?.ExtUserPtr?.active_mail_adapter || '';
         if (contact) {
           try {
-            const imgPng = 'https://qikinnovation.ams3.digitaloceanspaces.com/logo.png';
+            const imgPng = 'https://i.ibb.co/Tc1Lnq9/logo.png';
             let url = `${cloudServerUrl}/functions/sendmailv3/`;
             const headers = {
               'Content-Type': 'application/json',

@@ -52,7 +52,7 @@ async function sendMail(document, sessionToken) {
   }
   for (let i = 0; i < signerMail.length; i++) {
     try {
-      const imgPng = 'https://qikinnovation.ams3.digitaloceanspaces.com/logo.png';
+      const imgPng = 'https://i.ibb.co/Tc1Lnq9/logo.png';
       let url = `${serverUrl}/functions/sendmailv3`;
       const headers = {
         'Content-Type': 'application/json',
