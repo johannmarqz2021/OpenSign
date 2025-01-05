@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import Parse from "parse";
 import AsyncSelect from "react-select/async";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
 
 const SelectSigners = (props) => {
   const { t } = useTranslation();
@@ -31,17 +31,19 @@ const SelectSigners = (props) => {
 
   const loadOptions = async (inputValue) => {
     try {
-      const currentUser = Parse.User.current();
-      const contactbook = new Parse.Query("contracts_Contactbook");
-      contactbook.equalTo(
-        "CreatedBy",
-        Parse.User.createWithoutData(currentUser.id)
-      );
-      if (inputValue.length > 1) {
-        contactbook.matches("Name", new RegExp(inputValue, "i"));
-      }
-      contactbook.notEqualTo("IsDeleted", true);
-      const contactRes = await contactbook.find();
+      const baseURL = localStorage.getItem("baseUrl");
+      const url = `${baseURL}functions/getsigners`;
+      const token = props.jwttoken
+        ? { jwttoken: props.jwttoken }
+        : { "X-Parse-Session-Token": localStorage.getItem("accesstoken") };
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+        ...token
+      };
+      const searchEmail = inputValue ? inputValue : "";
+      const axiosRes = await axios.post(url, { searchEmail }, { headers });
+      const contactRes = axiosRes?.data?.result || [];
       if (contactRes) {
         const res = JSON.parse(JSON.stringify(contactRes));
         //compareArrays is a function where compare between two array (total signersList and dcument signers list)
@@ -52,11 +54,9 @@ const SelectSigners = (props) => {
               !signerObj.find((item2) => item2.objectId === item1.objectId)
           );
         };
-
         //get update signer's List if signersdata is present
         const updateSignersList =
           props?.signersData && compareArrays(res, props?.signersData);
-
         const result = updateSignersList ? updateSignersList : res;
         setUserList(result);
         return await result.map((item) => ({
@@ -68,7 +68,6 @@ const SelectSigners = (props) => {
       console.log("err", error);
     }
   };
-
   return (
     <div className="h-full px-[20px] py-[10px] text-base-content">
       <div className="w-full mx-auto p-[8px]">
@@ -85,6 +84,7 @@ const SelectSigners = (props) => {
             loadOptions={loadOptions}
             onChange={handleOptions}
             unstyled
+            onFocus={() => loadOptions()}
             classNames={{
               control: () =>
                 "op-input op-input-bordered op-input-sm focus:outline-none hover:border-base-content w-full h-full text-[11px]",

@@ -1,5 +1,5 @@
 {
-  "header-news": "Nouvelle fonctionnalité : les profils publics sont désormais en ligne ! Créez et partagez facilement des modèles publics",
+  "header-news": "Nouvelle fonctionnalité : les utilisateurs du forfait Teams peuvent désormais intégrer leurs propres compartiments AWS S3 pour le stockage de fichiers",
   "header-news-btn": "Configurer maintenant",
   "create-account": "Créer un compte",
   "login": "Se Connecter",
@@ -94,6 +94,7 @@
       "My Signature": "Ma signature",
       "API Token": "Jeton API",
       "Webhook": "Webhook",
+      "Preferences": "Préférences",
       "Teams": "Équipe",
       "Team-update-successfully": "Équipe mise à jour avec succès.",
       "Users": "Utilisateurs",
@@ -296,7 +297,7 @@
   "subject": "Sujet",
   "body": "Corps",
   "add-contact": "Ajouter le contact",
-  "add-signer-alert": "Le contact existe déjà !",
+  "add-signer-alert": "Le contact existe déjà ! Veuillez le sélectionner dans la liste déroulante 'Signataires'",
   "record-delete-alert": "Enregistrement supprimé avec succès !",
   "record-revoke-alert": " Enregistrement révoqué avec succès ! ",
   "mail-sent-alert": "Courriel envoyé avec succès.",
@@ -450,7 +451,8 @@
   "cutomize-email": "Personnaliser l'e-mail",
   "upgrade-to-customize-email": "Mise à niveau pour personnaliser l'e-mail",
   "sign-url": "Signer l'URL",
-  "Mails Sent": "Mails envoyés avec succès !",
+  "mails-sent": "Mails envoyés avec succès !",
+  "mail-not-delivered": "Courrier non distribué",
   "document-alert": "Alerte document",
   "owner-subscription-expired": "L'abonnement du propriétaire a expiré.",
   "subscription-expired": "Abonnement expiré",
@@ -703,7 +705,18 @@
    "form-title-2": "Paramètre de sécurité",
   "public-tour-message": "Le modèle doit être public avant que vous puissiez générer un lien partageable.",
   "add-user-template":"Vous devez ajouter un rôle avant de pouvoir lui ajouter des champs. ",
-  "pdf-uncompatible":"Ce pdf n'est pas compatible avec opensign, veuillez contacter <soporte@diogma.com>"
-
-
+  "pdf-uncompatible":"Ce pdf n'est pas compatible avec diogma, veuillez contacter <support@diogma.com>",
+  "text-field-tour" :"Les champs de type 'Texte' doivent être remplis à l'avance avant l'envoi du document. Si vous avez besoin que les signataires fournissent des informations, utilisez plutôt le champ 'Saisie de texte'.",
+  "attach-signer-tour" :"Vous devez associer un signataire à chaque rôle. Vous pouvez le faire en cliquant sur cette icône. Une fois que vous avez sélectionné un signataire, il sera attaché à tous les champs associés à ce rôle qui apparaissent dans la même couleur.",
+  "allowed-signature-types": "Types de signature autorisés",
+  "at-least-one-signature-type": "Au moins un type de signature doit être activé.",
+  "expect-default-one-signature-type": "Veuillez activer un type de signature supplémentaire en plus de celui par défaut.",
+  "add-signer-note": "Remarque - Ce contact sera ajouté à votre liste de contacts",
+  "allowed-signature-types-help": {
+    "p1": "Cette préférence de signature contrôle les options de signature disponibles pour vos signataires. Seuls les types de signature que vous sélectionnez apparaîtront dans le widget de signature lorsqu'un document est signé. Par exemple, si vous choisissez uniquement l'option 'Draw' dans les préférences, votre signataire ne verra que l'option 'Draw' dans le widget de signature, tandis que les trois autres options ne seront pas disponibles.",
+    "l1": "Créez une signature manuscrite directement sur l'écran à l'aide de votre doigt ou d'un stylet.",
+    "l2": "Entrez votre nom et choisissez parmi différents styles de police pour créer une signature.",
+    "l3": "Téléchargez une version numérique existante de votre signature.",
+    "l4": "Utilisez un style de signature prédéfini enregistré sous 'Ma signature' ​​dans vos paramètres."
+  }
 }

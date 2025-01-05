@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import Parse from "parse";
 import Loader from "./Loader";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
+import { getTenantDetails } from "../constant/Utils";
+import { emailRegex } from "../constant/const";
 const AddContact = (props) => {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -12,6 +14,7 @@ const AddContact = (props) => {
   const [isUserExist, setIsUserExist] = useState(false);
   useEffect(() => {
     checkUserExist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Load user details from localStorage when the component mounts
   useEffect(() => {
@@ -26,127 +29,61 @@ const AddContact = (props) => {
   }, [addYourself]);
 
   const checkUserExist = async () => {
-    const user = Parse.User.current();
     try {
-      const query = new Parse.Query("contracts_Contactbook");
-      query.equalTo("CreatedBy", user);
-      query.notEqualTo("IsDeleted", true);
-      query.equalTo("Email", user.getEmail());
-      const res = await query.first();
-      // console.log(res);
-      if (!res) {
+      const baseURL = localStorage.getItem("baseUrl");
+      const url = `${baseURL}functions/isuserincontactbook`;
+      const token = props?.jwttoken
+        ? { jwttoken: props?.jwttoken }
+        : { "X-Parse-Session-Token": localStorage.getItem("accesstoken") };
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+        ...token
+      };
+      const axiosRes = await axios.post(url, {}, { headers });
+      const contactRes = axiosRes?.data?.result || {};
+      if (!contactRes?.objectId) {
         setIsUserExist(true);
       }
     } catch (err) {
-      console.log("err", err);
+      console.log("err ", err);
     }
   };
   // Define a function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsLoader(true);
-    if (localStorage.getItem("TenantId")) {
-      try {
-        const user = Parse.User.current();
-        const query = new Parse.Query("contracts_Contactbook");
-        query.equalTo("CreatedBy", user);
-        query.notEqualTo("IsDeleted", true);
-        query.equalTo("Email", email);
-        const res = await query.first();
-        if (!res) {
-          const contactQuery = new Parse.Object("contracts_Contactbook");
-          contactQuery.set("Name", name);
-          if (phone) {
-            contactQuery.set("Phone", phone);
-          }
-          contactQuery.set("Email", email);
-          contactQuery.set("UserRole", "contracts_Guest");
-
-          if (localStorage.getItem("TenantId")) {
-            contactQuery.set("TenantId", {
-              __type: "Pointer",
-              className: "partners_Tenant",
-              objectId: localStorage.getItem("TenantId")
-            });
-          }
-
-          try {
-            const _users = Parse.Object.extend("User");
-            const _user = new _users();
-            _user.set("name", name);
-            _user.set("username", email);
-            _user.set("email", email);
-            _user.set("password", email);
-            if (phone) {
-              _user.set("phone", phone);
-            }
-
-            const user = await _user.save();
-            if (user) {
-              const currentUser = Parse.User.current();
-              contactQuery.set(
-                "CreatedBy",
-                Parse.User.createWithoutData(currentUser.id)
-              );
-
-              contactQuery.set("UserId", user);
-              const acl = new Parse.ACL();
-              acl.setPublicReadAccess(true);
-              acl.setPublicWriteAccess(true);
-              acl.setReadAccess(currentUser.id, true);
-              acl.setWriteAccess(currentUser.id, true);
-
-              contactQuery.setACL(acl);
-
-              const res = await contactQuery.save();
-
-              const parseData = JSON.parse(JSON.stringify(res));
-              props.details(parseData);
-              if (props.closePopup) {
-                props.closePopup();
-              }
-
-              setIsLoader(false);
-              // Reset the form fields
-              setAddYourself(false);
-              setName("");
-              setPhone("");
-              setEmail("");
-            }
-          } catch (err) {
-            console.log("err ", err);
-            if (err.code === 202) {
-              const params = { email: email };
-              const userRes = await Parse.Cloud.run("getUserId", params);
-              const currentUser = Parse.User.current();
-              contactQuery.set(
-                "CreatedBy",
-                Parse.User.createWithoutData(currentUser.id)
-              );
-
-              contactQuery.set("UserId", {
-                __type: "Pointer",
-                className: "_User",
-                objectId: userRes.id
-              });
-              const acl = new Parse.ACL();
-              acl.setPublicReadAccess(true);
-              acl.setPublicWriteAccess(true);
-              acl.setReadAccess(currentUser.id, true);
-              acl.setWriteAccess(currentUser.id, true);
-
-              contactQuery.setACL(acl);
-              const res = await contactQuery.save();
-
-              const parseData = JSON.parse(JSON.stringify(res));
-              if (props.details) {
-                props.details(parseData);
-              }
-
-              if (props.closePopup) {
-                props.closePopup();
-              }
+    if (!emailRegex.test(email)) {
+      alert("Please enter a valid email address.");
+    } else {
+      setIsLoader(true);
+      const user = JSON.parse(
+        localStorage.getItem(
+          `Parse/${localStorage.getItem("parseAppId")}/currentUser`
+        )
+      );
+      const userId = user?.objectId || "";
+      const tenantDetails = await getTenantDetails(userId, props.jwttoken);
+      const tenantId = tenantDetails?.objectId || "";
+      if (tenantId) {
+        try {
+          const baseURL = localStorage.getItem("baseUrl");
+          const url = `${baseURL}functions/savecontact`;
+          const token = props?.jwttoken
+            ? { jwttoken: props?.jwttoken }
+            : { "X-Parse-Session-Token": localStorage.getItem("accesstoken") };
+          const data = { name, email, phone, tenantId };
+          const headers = {
+            "Content-Type": "application/json",
+            "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+            ...token
+          };
+          const axiosRes = await axios.post(url, data, { headers });
+          const contactRes = axiosRes?.data?.result || {};
+          if (contactRes?.objectId) {
+            props.details(contactRes);
+            if (props.closePopup) {
+              props.closePopup();
               setIsLoader(false);
               // Reset the form fields
               setAddYourself(false);
@@ -155,18 +92,19 @@ const AddContact = (props) => {
               setEmail("");
             }
           }
-        } else {
-          alert(t("add-signer-alert"));
+        } catch (err) {
+          console.log("Err", err);
           setIsLoader(false);
+          if (err?.response?.data?.error?.includes("already exists")) {
+            alert(t("add-signer-alert"));
+          } else {
+            alert(t("something-went-wrong-mssg"));
+          }
         }
-      } catch (err) {
-        // console.log("err", err);
+      } else {
         setIsLoader(false);
         alert(t("something-went-wrong-mssg"));
       }
-    } else {
-      setIsLoader(false);
-      alert(t("something-went-wrong-mssg"));
     }
   };
 

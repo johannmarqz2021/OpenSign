@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { cloudServerUrl } from '../../Utils.js';
-
+import { cloudServerUrl, parseJwt } from '../../Utils.js';
+import jwt from 'jsonwebtoken';
 const serverUrl = cloudServerUrl; //process.env.SERVER_URL;
 const appId = process.env.APP_ID;
 const licenseKey = process.env.LICENSE_KEY;
@@ -30,7 +30,8 @@ async function deductcount(docsCount, extUserId, subscription) {
     console.log('Err in deduct in quick send', err);
   }
 }
-async function sendMail(document, sessionToken) {
+async function sendMail(document) {
+  //sessionToken
   const baseUrl = new URL(process.env.PUBLIC_URL);
 
   // console.log("pdfDetails", pdfDetails);
@@ -57,7 +58,7 @@ async function sendMail(document, sessionToken) {
       const headers = {
         'Content-Type': 'application/json',
         'X-Parse-Application-Id': appId,
-        sessionToken: sessionToken,
+        // sessionToken: sessionToken,
       };
       const objectId = signerMail[i]?.signerObjId;
       const hostUrl = baseUrl.origin;
@@ -111,13 +112,232 @@ async function sendMail(document, sessionToken) {
     }
   }
 }
+async function callwebhookevent(document) {
+  const Signers = document.Signers;
+  const allSigner = document?.Placeholders?.map(item => {
+    if (item.signerObjId) {
+      const signer = Signers?.find(e => item?.signerPtr?.objectId === e?.objectId);
+      if (signer) {
+        return {
+          role: item?.Role || '',
+          name: signer?.Name || '',
+          email: signer?.Email || '',
+          phone: signer?.Phone || '',
+        };
+      }
+    } else {
+      return { role: item?.Role || '', name: '', email: item?.email || '', phone: '' };
+    }
+  });
+  const params = {
+    event: 'created',
+    body: {
+      objectId: document?.objectId,
+      file: document?.SignedUrl || document?.URL,
+      name: document?.Name,
+      note: document?.Note || '',
+      description: document?.Description || '',
+      signers: allSigner,
+      createdBy: document?.ExtUserPtr.Email,
+      createdAt: document?.createdAt,
+    },
+  };
+  try {
+    await axios
+      .post(document?.ExtUserPtr?.Webhook, params, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      .then(res => {
+        try {
+          const webhook = new Parse.Object('contracts_Webhook');
+          webhook.set('Log', res?.status);
+          webhook.set('UserId', {
+            __type: 'Pointer',
+            className: '_User',
+            objectId: document.CreatedBy.objectId,
+          });
+          webhook.save(null, { useMasterKey: true });
+        } catch (err) {
+          console.log('err save in contracts_Webhook', err);
+        }
+      })
+      .catch(err => {
+        console.log('Err send data to webhook', err?.message);
+        try {
+          const webhook = new Parse.Object('contracts_Webhook');
+          webhook.set('Log', err?.status);
+          webhook.set('UserId', {
+            __type: 'Pointer',
+            className: '_User',
+            objectId: document.CreatedBy.objectId,
+          });
+          webhook.save(null, { useMasterKey: true });
+        } catch (err) {
+          console.log('err save in contracts_Webhook', err?.message);
+        }
+      });
+  } catch (err) {
+    console.log('Err ', err?.message);
+  }
+}
+async function batchQuery(userId, Documents, Ip, parseConfig) {
+  const extCls = new Parse.Query('contracts_Users');
+  extCls.equalTo('UserId', {
+    __type: 'Pointer',
+    className: '_User',
+    objectId: userId,
+  });
+  const resExt = await extCls.first({ useMasterKey: true });
+  if (resExt) {
+    const _resExt = JSON.parse(JSON.stringify(resExt));
+    try {
+      const requests = Documents.map(x => {
+        const Signers = x.Signers;
+        const allSigner = x?.Placeholders?.map(
+          item => Signers?.find(e => item?.signerPtr?.objectId === e?.objectId) || item?.signerPtr
+        ).filter(signer => Object.keys(signer).length > 0);
+        const date = new Date();
+        const isoDate = date.toISOString();
+        let Acl = { [x.CreatedBy.objectId]: { read: true, write: true } };
+        if (allSigner && allSigner.length > 0) {
+          allSigner.forEach(x => {
+            const obj = { [x.CreatedBy.objectId]: { read: true, write: true } };
+            Acl = { ...Acl, ...obj };
+          });
+        }
+        return {
+          method: 'POST',
+          path: '/app/classes/contracts_Document',
+          body: {
+            Name: x.Name,
+            URL: x.URL,
+            Note: x.Note,
+            Description: x.Description,
+            CreatedBy: x.CreatedBy,
+            SendinOrder: x.SendinOrder || true,
+            ExtUserPtr: {
+              __type: 'Pointer',
+              className: x.ExtUserPtr.className,
+              objectId: x.ExtUserPtr?.objectId,
+            },
+            Placeholders: x.Placeholders.map(y =>
+              y?.signerPtr?.objectId
+                ? {
+                    ...y,
+                    signerPtr: {
+                      __type: 'Pointer',
+                      className: 'contracts_Contactbook',
+                      objectId: y.signerPtr.objectId,
+                    },
+                    signerObjId: y.signerObjId,
+                  }
+                : { ...y, signerPtr: {}, signerObjId: '' }
+            ),
+            SignedUrl: x.URL || x.SignedUrl,
+            SentToOthers: true,
+            Signers: allSigner?.map(y => ({
+              __type: 'Pointer',
+              className: 'contracts_Contactbook',
+              objectId: y.objectId,
+            })),
+            ACL: Acl,
+            SentToOthers: true,
+            RemindOnceInEvery: x.RemindOnceInEvery || 5,
+            AutomaticReminders: x.AutomaticReminders || false,
+            TimeToCompleteDays: x.TimeToCompleteDays || 15,
+            OriginIp: Ip,
+            DocSentAt: { __type: 'Date', iso: isoDate },
+            IsEnableOTP: x?.IsEnableOTP || false,
+            IsTourEnabled: x?.IsTourEnabled || false,
+            FileAdapterId: x?.FileAdapterId || '',
+            ...(x?.SignatureType ? { SignatureType: x?.SignatureType } : {}),
+          },
+        };
+      });
+      // console.log('requests ', requests);
+      if (licenseKey) {
+        const subscription = new Parse.Query('contracts_Subscriptions');
+        subscription.equalTo('TenantId', {
+          __type: 'Pointer',
+          className: 'partners_Tenant',
+          objectId: _resExt.TenantId.objectId,
+        });
+        subscription.include('ExtUserPtr');
+        subscription.greaterThanOrEqualTo('Next_billing_date', new Date());
+        const resSub = await subscription.first({ useMasterKey: true });
+        if (resSub) {
+          const _resSub = JSON.parse(JSON.stringify(resSub));
+          const allowedCredits = _resSub?.AllowedCredits || 0;
+          const addonCredits = _resSub?.AddonCredits || 0;
+          const totalcredits = allowedCredits + addonCredits;
+          if (requests?.length <= totalcredits) {
+            const response = await axios.post('batch', { requests: requests }, parseConfig);
+            // Handle the batch query response
+            // console.log('Batch query response:', response.data);
+            if (response.data && response.data.length > 0) {
+              const updateDocuments = Documents.map((x, i) => ({
+                ...x,
+                objectId: response.data[i]?.success?.objectId,
+                createdAt: response.data[i]?.success?.createdAt,
+              }));
+              deductcount(response.data.length, resExt.id, _resSub);
+              for (let i = 0; i < updateDocuments.length; i++) {
+                sendMail(updateDocuments[i], ''); //sessionToken
+              }
+              callwebhookevent(Documents[0]);
+              return 'success';
+            }
+          } else {
+            throw new Parse.Error(429, 'Quota reached, Please buy credits and try again later.');
+          }
+        } else {
+          throw new Parse.Error(
+            Parse.Error.INVALID_QUERY,
+            'Please purchase or renew your subscription.'
+          );
+        }
+      } else {
+        if (requests?.length > 0) {
+          const newrequests = [requests?.[0]];
+          const response = await axios.post('batch', { requests: newrequests }, parseConfig);
+          // Handle the batch query response
+          // console.log('Batch query response:', response.data);
+          if (response.data && response.data.length > 0) {
+            const document = Documents?.[0];
+            const updateDocuments = {
+              ...document,
+              objectId: response.data[0]?.success?.objectId,
+              createdAt: response.data[0]?.success?.createdAt,
+            };
+            deductcount(response.data.length, resExt.id);
+            sendMail(updateDocuments); //sessionToken
+            callwebhookevent(Documents[0]);
+            return 'success';
+          }
+        }
+      }
+    } catch (error) {
+      const code = error?.response?.data?.code || error?.response?.status || error?.code || 400;
+      const msg =
+        error?.response?.data?.error ||
+        error?.response?.data ||
+        error?.message ||
+        'Something went wrong.';
+      console.log('Error performing batch query:', code, msg);
+      throw new Parse.Error(code, msg);
+    }
+  } else {
+    throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'User not found.');
+  }
+}
 export default async function createBatchDocs(request) {
   const strDocuments = request.params.Documents;
-  const sessionToken = request.headers['sessiontoken'];
+  const sessionToken = request.headers?.sessiontoken;
+  const jwttoken = request.headers?.jwttoken;
   const Documents = JSON.parse(strDocuments);
   const Ip = request?.headers?.['x-real-ip'] || '';
   const parseConfig = {
-    baseURL: serverUrl, //localStorage.getItem('baseUrl'),
+    baseURL: serverUrl,
     headers: {
       'X-Parse-Application-Id': appId,
       'X-Parse-Session-Token': sessionToken,
@@ -125,167 +345,38 @@ export default async function createBatchDocs(request) {
     },
   };
   try {
-    const user = await axios.get(serverUrl + '/users/me', {
-      headers: {
-        'X-Parse-Application-Id': appId,
-        'X-Parse-Session-Token': request.headers['sessiontoken'],
-      },
-    });
-    if (user.data) {
-      const extCls = new Parse.Query('contracts_Users');
-      extCls.equalTo('UserId', {
-        __type: 'Pointer',
-        className: '_User',
-        objectId: user.data.objectId,
-      });
-      const resExt = await extCls.first({ useMasterKey: true });
-      if (resExt) {
-        const _resExt = JSON.parse(JSON.stringify(resExt));
-        try {
-          const requests = Documents.map(x => {
-            const Signers = x.Signers;
-            const allSigner = x?.Placeholders?.map(
-              item =>
-                Signers?.find(e => item?.signerPtr?.objectId === e?.objectId) || item?.signerPtr
-            ).filter(signer => Object.keys(signer).length > 0);
-            const date = new Date();
-            const isoDate = date.toISOString();
-            let Acl = { [x.CreatedBy.objectId]: { read: true, write: true } };
-            if (allSigner && allSigner.length > 0) {
-              allSigner.forEach(x => {
-                const obj = { [x.CreatedBy.objectId]: { read: true, write: true } };
-                Acl = { ...Acl, ...obj };
-              });
-            }
-            return {
-              method: 'POST',
-              path: '/app/classes/contracts_Document',
-              body: {
-                Name: x.Name,
-                URL: x.URL,
-                Note: x.Note,
-                Description: x.Description,
-                CreatedBy: x.CreatedBy,
-                SendinOrder: x.SendinOrder || true,
-                ExtUserPtr: {
-                  __type: 'Pointer',
-                  className: x.ExtUserPtr.className,
-                  objectId: x.ExtUserPtr.objectId,
-                },
-                Placeholders: x.Placeholders.map(y =>
-                  y?.signerPtr?.objectId
-                    ? {
-                        ...y,
-                        signerPtr: {
-                          __type: 'Pointer',
-                          className: 'contracts_Contactbook',
-                          objectId: y.signerPtr.objectId,
-                        },
-                        signerObjId: y.signerObjId,
-                      }
-                    : { ...y, signerPtr: {}, signerObjId: '' }
-                ),
-                SignedUrl: x.URL || x.SignedUrl,
-                SentToOthers: true,
-                Signers: allSigner?.map(y => ({
-                  __type: 'Pointer',
-                  className: 'contracts_Contactbook',
-                  objectId: y.objectId,
-                })),
-                ACL: Acl,
-                SentToOthers: true,
-                RemindOnceInEvery: x.RemindOnceInEvery || 5,
-                AutomaticReminders: x.AutomaticReminders || false,
-                TimeToCompleteDays: x.TimeToCompleteDays || 15,
-                OriginIp: Ip,
-                DocSentAt: { __type: 'Date', iso: isoDate },
-                IsEnableOTP: x?.IsEnableOTP || false,
-                IsTourEnabled: x?.IsTourEnabled || false,
-                FileAdapterId: x?.FileAdapterId || '',
-              },
-            };
-          });
-          // console.log('requests ', requests);
-          if (licenseKey) {
-            const subscription = new Parse.Query('contracts_Subscriptions');
-            subscription.equalTo('TenantId', {
-              __type: 'Pointer',
-              className: 'partners_Tenant',
-              objectId: _resExt.TenantId.objectId,
-            });
-            subscription.include('ExtUserPtr');
-            subscription.greaterThanOrEqualTo('Next_billing_date', new Date());
-            const resSub = await subscription.first({ useMasterKey: true });
-            if (resSub) {
-              const _resSub = JSON.parse(JSON.stringify(resSub));
-              const allowedCredits = _resSub?.AllowedCredits || 0;
-              const addonCredits = _resSub?.AddonCredits || 0;
-              const totalcredits = allowedCredits + addonCredits;
-              if (requests?.length <= totalcredits) {
-                const response = await axios.post('batch', { requests: requests }, parseConfig);
-                // // Handle the batch query response
-                // console.log('Batch query response:', response.data);
-                if (response.data && response.data.length > 0) {
-                  const updateDocuments = Documents.map((x, i) => ({
-                    ...x,
-                    objectId: response.data[i]?.success?.objectId,
-                    createdAt: response.data[i]?.success?.createdAt,
-                  }));
-                  deductcount(response.data.length, resExt.id, _resSub);
-                  for (let i = 0; i < updateDocuments.length; i++) {
-                    sendMail(updateDocuments[i], sessionToken);
-                  }
-                  return 'success';
-                }
-              } else {
-                throw new Parse.Error(
-                  429,
-                  'Quota reached, Please buy credits and try again later.'
-                );
-              }
-            } else {
-              throw new Parse.Error(
-                Parse.Error.INVALID_QUERY,
-                'Please purchase or renew your subscription.'
-              );
-            }
-          } else {
-            if (requests?.length > 0) {
-              const newrequests = [requests?.[0]];
-              const response = await axios.post('batch', { requests: newrequests }, parseConfig);
-              // Handle the batch query response
-              // console.log('Batch query response:', response.data);
-              if (response.data && response.data.length > 0) {
-                const document = Documents?.[0];
-                const updateDocuments = {
-                  ...document,
-                  objectId: response.data[0]?.success?.objectId,
-                  createdAt: response.data[0]?.success?.createdAt,
-                };
-                deductcount(response.data.length, resExt.id);
-                sendMail(updateDocuments, sessionToken);
-                return 'success';
-              }
-            }
-          }
-        } catch (error) {
-          const code = error?.response?.data?.code || error?.response?.status || error?.code || 400;
-          const msg =
-            error?.response?.data?.error ||
-            error?.response?.data ||
-            error?.message ||
-            'Something went wrong.';
-          console.log('Error performing batch query:', code, msg);
-          throw new Parse.Error(code, msg);
+    if (request?.user) {
+      return await batchQuery(request.user.id, Documents, Ip, parseConfig);
+    } else if (jwttoken) {
+      const jwtDecode = parseJwt(jwttoken);
+      if (jwtDecode?.user_email) {
+        const userCls = new Parse.Query(Parse.User);
+        userCls.equalTo('email', jwtDecode?.user_email);
+        const userRes = await userCls.first({ useMasterKey: true });
+        const userId = userRes?.id;
+        const tokenQuery = new Parse.Query('appToken');
+        tokenQuery.equalTo('userId', {
+          __type: 'Pointer',
+          className: '_User',
+          objectId: userId,
+        });
+        const appRes = await tokenQuery.first({ useMasterKey: true });
+        const decoded = jwt.verify(jwttoken, appRes?.get('token'));
+        if (decoded?.user_email) {
+          return await batchQuery(userId, Documents, Ip, parseConfig);
+        } else {
+          throw new Parse.Error(Parse.Error.INVALID_SESSION_TOKEN, 'Invalid token.');
         }
+      } else {
+        throw new Parse.Error(Parse.Error.INVALID_SESSION_TOKEN, 'Invalid token.');
       }
     } else {
-      throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'User not found.');
+      throw new Parse.Error(Parse.Error.INVALID_SESSION_TOKEN, 'User is not authenticated.');
     }
   } catch (err) {
     console.log('err in createbatchdoc', err);
     const code = err?.code || 400;
     const msg = err?.message || 'Something went wrong.';
-    new Parse.Error(code, msg);
+    throw new Parse.Error(code, msg);
   }
 }

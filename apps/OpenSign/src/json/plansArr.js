@@ -16,17 +16,18 @@ const plans = [
       "Unlimited digital signatures",
       "Sign documents yourself",
       "Request signatures from others",
+      "Unlimited templates",
       "14 field types",
       "Automatic e-signatures",
       "Completion certificates",
       "Send in order",
+      "Organize docs in OpenSign™ Drive",
       "Document templates",
       "Import from Dropbox",
       "Contact book",
       "Document expiry support",
       "Decline document support",
       "Email notifications",
-      "Recipient authentication using OTP",
       "Public profiles",
       "And much more"
     ],
@@ -34,17 +35,18 @@ const plans = [
       "Unlimited digital signatures",
       "Sign documents yourself",
       "Request signatures from others",
+      "Unlimited templates",
       "14 field types",
       "Automatic e-signatures",
       "Completion certificates",
       "Send in order",
+      "Organize docs in OpenSign™ Drive",
       "Document templates",
       "Import from Dropbox",
       "Contact book",
       "Document expiry support",
       "Decline document support",
       "Email notifications",
-      "Recipient authentication using OTP",
       "Public profiles",
       "And much more"
     ]
@@ -61,10 +63,10 @@ const plans = [
     subtitle: "Exclusive Access to advanced features.",
     btn: { text: "Subscribe", color: "op-btn-primary" },
     url: isStaging
-      ? "https://billing.zoho.in/subscribe/9627f62a09df1c8ce500f2f4dc8328dd84ecda20eeae13878ce581d60240f206/pro-weekly"
+      ? "https://billing.zohosecure.in/subscribe/9627f62a09df1c8ce500f2f4dc8328dd84ecda20eeae13878ce581d60240f206/pro-weekly"
       : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af901d1a09dfa8085585cdd4ec4d7f32137f3/professional-monthly",
     yearlyUrl: isStaging
-      ? "https://billing.zoho.in/subscribe/9627f62a09df1c8ce500f2f4dc8328ddc184411129224f1f29ed84f6cef3b862/pro-yearly"
+      ? "https://billing.zohosecure.in/subscribe/9627f62a09df1c8ce500f2f4dc8328ddc184411129224f1f29ed84f6cef3b862/pro-yearly"
       : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af901d8ad1135190dff951330360e47585a71/professional-yearly",
     target: "_self",
     benefits: [
@@ -77,10 +79,12 @@ const plans = [
       "API Access",
       "upto 100 API signatures",
       "Custom email templates",
+      "Connect your own Gmail or SMTP account for sending emails",
       "Auto reminders",
       "Bulk send (upto 100 docs)",
       "Premium Public profile usernames",
-      "Embedding (coming soon)"
+      "Enforce email-based verification to confirm signer identity",
+      "Embedded signing"
     ],
     yearlyBenefits: [
       "Everything in OpenSign™ free",
@@ -92,10 +96,12 @@ const plans = [
       "API Access",
       "upto 240 API signatures",
       "Custom email templates",
+      "Connect your own Gmail or SMTP account for sending emails",
       "Auto reminders",
       "Bulk send (upto 240 docs)",
       "Premium Public profile usernames",
-      "Embedding (coming soon)"
+      "Enforce email-based verification to confirm signer identity",
+      "Embedded signing"
     ]
   },
   {
@@ -108,10 +114,10 @@ const plans = [
     subtitle: "Exclusive Access to advanced features.",
     btn: { text: "Subscribe", color: "op-btn-accent" },
     url: isStaging
-      ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-monthly"
+      ? "https://billing.zohosecure.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-monthly"
       : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af901237d0702bfaa959406306635d80f138c/teams-monthly",
     yearlyUrl: isStaging
-      ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-yearly"
+      ? "https://billing.zohosecure.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-yearly"
       : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af9011a864994bbeeec71fcf106188630199d/teams-yearly",
     target: "_self",
     benefits: [
@@ -120,6 +126,7 @@ const plans = [
       "Teams and Organizations",
       "Share Templates with teams",
       "Share Templates with individuals",
+      "BYOC - Store your documents in your own cloud storage",
       "DocumentId removal from signed docs",
       "Bulk send (upto 100 docs)",
       "Request Payments (coming soon)",
@@ -131,6 +138,7 @@ const plans = [
       "Teams and Organizations",
       "Share Templates with teams",
       "Share Templates with individuals",
+      "BYOC - Store your documents in your own cloud storage",
       "DocumentId removal from signed docs",
       "Bulk send (upto 500 docs)",
       "Request Payments (coming soon)",
@@ -231,10 +239,10 @@ export const paidUrl = (plan) => {
     }
     const url = {
       monthly: isStaging
-        ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-monthly"
+        ? "https://billing.zohosecure.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-monthly"
         : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af901237d0702bfaa959406306635d80f138c/teams-monthly",
       yearly: isStaging
-        ? "https://billing.zoho.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-yearly"
+        ? "https://billing.zohosecure.in/subscribe/ed8097273a82b6bf39892c11a3bb3c381eb2705736014cfbdbde1ccf1c7a189d/teams-yearly"
         : "https://billing.opensignlabs.com/subscribe/ef798486e6a0a11ea65f2bae8f2af9011a864994bbeeec71fcf106188630199d/teams-yearly"
     };
 

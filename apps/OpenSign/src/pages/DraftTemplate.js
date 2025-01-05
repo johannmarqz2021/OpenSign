@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import RenderAllPdfPage from "../components/pdf/RenderAllPdfPage";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import "../styles/signature.css";
-import { isEnableSubscription } from "../constant/const";
+import { isEnableSubscription, isStaging } from "../constant/const";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDrag, useDrop } from "react-dnd";
@@ -17,7 +17,6 @@ import {
   contractUsers,
   randomId,
   addZIndex,
-  createDocument,
   defaultWidthHeight,
   addWidgetOptions,
   textInputWidget,
@@ -31,8 +30,9 @@ import {
   handleRemoveWidgets,
   handleRotateWarning,
   color,
-  signatureTypes,
+  copytoData,
   getTenantDetails,
+  signatureTypes,
   handleSignatureType
 } from "../constant/Utils";
 import RenderPdf from "../components/pdf/RenderPdf";
@@ -42,7 +42,6 @@ import EditTemplate from "../components/pdf/EditTemplate";
 import AddRoleModal from "../components/pdf/AddRoleModal";
 import PlaceholderCopy from "../components/pdf/PlaceholderCopy";
 import DropdownWidgetOption from "../components/pdf/DropdownWidgetOption";
-import Parse from "parse";
 import { useSelector } from "react-redux";
 import PdfZoom from "../components/pdf/PdfZoom";
 import { useTranslation } from "react-i18next";
@@ -52,16 +51,23 @@ import TourContentWithBtn from "../primitives/TourContentWithBtn";
 import HandleError from "../primitives/HandleError";
 import LoaderWithMsg from "../primitives/LoaderWithMsg";
 import LinkUserModal from "../primitives/LinkUserModal";
+import { jwtDecode } from "jwt-decode";
+import BulkSendUi from "../components/BulkSendUi";
+import Alert from "../primitives/Alert";
+import { RWebShare } from "react-web-share";
 
-const TemplatePlaceholder = () => {
+const DraftTemplate = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const isHeader = useSelector((state) => state.showHeader);
-  const { templateId } = useParams();
+  const { jwttoken } = useParams();
+  const signRef = useRef(null);
+  const dragRef = useRef(null);
+  const divRef = useRef(null);
+  const numPages = 1;
+  const isMobile = window.innerWidth < 767;
   const [pdfDetails, setPdfDetails] = useState([]);
   const [isMailSend, setIsMailSend] = useState(false);
   const [allPages, setAllPages] = useState(null);
-  const numPages = 1;
   const [pageNumber, setPageNumber] = useState(1);
   const [signBtnPosition, setSignBtnPosition] = useState([]);
   const [xySignature, setXYSignature] = useState({});
@@ -78,7 +84,6 @@ const TemplatePlaceholder = () => {
     message: t("loading-mssg")
   });
   const [handleError, setHandleError] = useState();
-  const [currentEmail, setCurrentEmail] = useState();
   const [pdfNewWidth, setPdfNewWidth] = useState();
   const [templateTour, setTemplateTour] = useState(true);
   const [checkTourStatus, setCheckTourStatus] = useState(false);
@@ -86,9 +91,6 @@ const TemplatePlaceholder = () => {
   const [signerUserId, setSignerUserId] = useState();
   const [pdfOriginalWH, setPdfOriginalWH] = useState([]);
   const [containerWH, setContainerWH] = useState();
-  const signRef = useRef(null);
-  const dragRef = useRef(null);
-  const divRef = useRef(null);
   const [isShowEmail, setIsShowEmail] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState(false);
   const [isResize, setIsResize] = useState(false);
@@ -103,7 +105,30 @@ const TemplatePlaceholder = () => {
   const [isTextSetting, setIsTextSetting] = useState(false);
   const [pdfLoad, setPdfLoad] = useState(false);
   const [pdfRotateBase64, setPdfRotatese64] = useState("");
-  const isMobile = window.innerWidth < 767;
+  const [uniqueId, setUniqueId] = useState("");
+  const [isModalRole, setIsModalRole] = useState(false);
+  const [roleName, setRoleName] = useState("");
+  const [isAddUser, setIsAddUser] = useState({});
+  const [isEditTemplate, setIsEditTemplate] = useState(false);
+  const [isPageCopy, setIsPageCopy] = useState(false);
+  const [signKey, setSignKey] = useState();
+  const [IsReceipent, setIsReceipent] = useState(true);
+  const [isDontShow, setIsDontShow] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [currWidgetsDetails, setCurrWidgetsDetails] = useState([]);
+  const [isCheckbox, setIsCheckbox] = useState(false);
+  const [widgetName, setWidgetName] = useState(false);
+  const [isAddRole, setIsAddRole] = useState(false);
+  const [fontSize, setFontSize] = useState();
+  const [fontColor, setFontColor] = useState();
+  const [zoomPercent, setZoomPercent] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
+  const [isAlert, setIsAlert] = useState({ type: "success", msg: "" });
+  const [isPublic, setIsPublic] = useState("");
+  const [isPublicErr, setIsPublicError] = useState("");
+  const [isAllRoleLinked, setIsAllRolelinked] = useState(false);
+  const [signatureType, setSignatureType] = useState([]);
   const [, drop] = useDrop({
     accept: "BOX",
     drop: (item, monitor) => addPositionOfSignature(item, monitor),
@@ -119,27 +144,8 @@ const TemplatePlaceholder = () => {
     item: { type: "BOX", id: 2, text: "stamp" },
     collect: (monitor) => ({ isDragStamp: !!monitor.isDragging() })
   });
-  const [uniqueId, setUniqueId] = useState("");
-  const [isModalRole, setIsModalRole] = useState(false);
-  const [roleName, setRoleName] = useState("");
-  const [isAddUser, setIsAddUser] = useState({});
-  const [isCreateDoc, setIsCreateDoc] = useState(false);
-  const [isEditTemplate, setIsEditTemplate] = useState(false);
-  const [isPageCopy, setIsPageCopy] = useState(false);
-  const [signKey, setSignKey] = useState();
-  const [IsReceipent, setIsReceipent] = useState(true);
-  const [isDontShow, setIsDontShow] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [currWidgetsDetails, setCurrWidgetsDetails] = useState([]);
-  const [isCheckbox, setIsCheckbox] = useState(false);
-  const [widgetName, setWidgetName] = useState(false);
-  const [isAddRole, setIsAddRole] = useState(false);
-  const [fontSize, setFontSize] = useState();
-  const [fontColor, setFontColor] = useState();
-  const [zoomPercent, setZoomPercent] = useState(0);
-  const [scale, setScale] = useState(1);
-  const [signatureType, setSignatureType] = useState([]);
-
+  const decode = jwtDecode(jwttoken);
+  const templateId = decode?.template_id;
   useEffect(() => {
     fetchTemplate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,10 +173,11 @@ const TemplatePlaceholder = () => {
   }, [divRef.current, isHeader]);
 
   const handleNavigation = () => {
-    navigate("/subscription");
+    // navigate("/subscription");
+    setIsSubscriptionExpired(true);
   };
   async function checkIsSubscribed() {
-    const res = await fetchSubscription();
+    const res = await fetchSubscription("", "", false, false, jwttoken);
     const plan = res.plan;
     const billingDate = res.billingDate;
     if (plan === "freeplan") {
@@ -186,17 +193,11 @@ const TemplatePlaceholder = () => {
       handleNavigation(plan);
     }
   }
-
   //function to fetch tenant Details
   const fetchTenantDetails = async () => {
-    const user = JSON.parse(
-      localStorage.getItem(
-        `Parse/${localStorage.getItem("parseAppId")}/currentUser`
-      )
-    );
-    if (user) {
+    if (jwttoken) {
       try {
-        const tenantDetails = await getTenantDetails(user?.objectId);
+        const tenantDetails = await getTenantDetails("", jwttoken);
         if (tenantDetails && tenantDetails === "user does not exist!") {
           alert(t("user-not-exist"));
         } else if (tenantDetails) {
@@ -213,12 +214,14 @@ const TemplatePlaceholder = () => {
       alert(t("user-not-exist"));
     }
   };
-
   // `fetchTemplate` function in used to get Template from server and setPlaceholder ,setSigner if present
   const fetchTemplate = async () => {
     try {
       const tenantSignTypes = await fetchTenantDetails();
       const params = { templateId: templateId };
+      const token = jwttoken
+        ? { jwttoken: jwttoken }
+        : { sessionToken: localStorage.getItem("accesstoken") };
       const templateDeatils = await axios.post(
         `${localStorage.getItem("baseUrl")}functions/getTemplate`,
         params,
@@ -226,7 +229,7 @@ const TemplatePlaceholder = () => {
           headers: {
             "Content-Type": "application/json",
             "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
-            sessiontoken: localStorage.getItem("accesstoken")
+            ...token
           }
         }
       );
@@ -234,6 +237,15 @@ const TemplatePlaceholder = () => {
         templateDeatils.data && templateDeatils.data.result
           ? [templateDeatils.data.result]
           : [];
+      if (templateDeatils?.data?.result?.IsPublic !== undefined) {
+        if (templateDeatils?.data?.result?.IsPublic === true) {
+          setIsPublic("true");
+        } else {
+          setIsPublic("false");
+        }
+      } else {
+        setIsPublic("undefined");
+      }
 
       if (documentData && documentData.length > 0) {
         if (isEnableSubscription) {
@@ -315,10 +327,10 @@ const TemplatePlaceholder = () => {
         setHandleError(t("no-data-avaliable"));
         setIsLoading({ isLoad: false });
       }
-      const res = await contractUsers();
+
+      const res = await contractUsers(jwttoken);
       if (res[0] && res.length) {
         setSignerUserId(res[0].objectId);
-        setCurrentEmail(res[0].Email);
         const tourstatus = res[0].TourStatus && res[0].TourStatus;
         if (tourstatus && tourstatus.length > 0) {
           setTourStatus(tourstatus);
@@ -346,7 +358,6 @@ const TemplatePlaceholder = () => {
       }
     }
   };
-
   //function for setting position after drop signature button over pdf
   const addPositionOfSignature = (item, monitor) => {
     if (item && item.text) {
@@ -544,7 +555,6 @@ const TemplatePlaceholder = () => {
 
           if (getPageNumer.length > 0) {
             const getXYdata = getPageNumer[0].pos;
-
             const getPosData = getXYdata;
             const addSignPos = getPosData.map((url) => {
               if (url.key === keyValue) {
@@ -569,7 +579,6 @@ const TemplatePlaceholder = () => {
               }
               return obj;
             });
-
             setSignerPos(newUpdateSigner);
           }
         }
@@ -672,9 +681,7 @@ const TemplatePlaceholder = () => {
   };
 
   //function for capture position of x and y on hover signature button last position
-  const handleMouseLeave = () => {
-    setSignBtnPosition([xySignature]);
-  };
+  const handleMouseLeave = () => setSignBtnPosition([xySignature]);
   const alertSendEmail = async () => {
     const isPlaceholderExist = signerPos.every((data) => data.placeHolder);
     if (isPlaceholderExist) {
@@ -684,59 +691,23 @@ const TemplatePlaceholder = () => {
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (signerPos?.length > 0) {
-        autosavedetails();
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signerPos, signatureType]);
-
-  // `autosavedetails` is used to save template details after every 2 sec when changes are happern in placeholder like drag-drop widgets, remove signers
-  const autosavedetails = async () => {
-    let signers = [];
-    if (signersdata?.length > 0) {
-      signersdata.forEach((x) => {
-        if (x.objectId) {
-          const obj = {
-            __type: "Pointer",
-            className: "contracts_Contactbook",
-            objectId: x.objectId
-          };
-          signers.push(obj);
-        }
-      });
-    }
-    try {
-      const templateCls = new Parse.Object("contracts_Template");
-      templateCls.id = templateId;
-      templateCls.set("Placeholders", signerPos);
-      templateCls.set("Signers", signers);
-      templateCls.set("SignatureType", signatureType);
-      await templateCls.save();
-    } catch (err) {
-      console.log("error in autosave template", err);
-    }
-  };
-
-  const handleSaveTemplate = async () => {
+  // `saveTemplate` is used to update template on server using savetemplate endpoint
+  const saveTemplate = async () => {
     if (signersdata?.length) {
       setIsLoading({ isLoad: true, message: t("loading-mssg") });
       setIsSendAlert(false);
       let signers = [];
       if (signersdata?.length > 0) {
-        signersdata.forEach((x) => {
+        signers = signersdata?.reduce((acc, x) => {
           if (x.objectId) {
-            const obj = {
+            acc.push({
               __type: "Pointer",
               className: "contracts_Contactbook",
               objectId: x.objectId
-            };
-            signers.push(obj);
+            });
           }
-        });
+          return acc;
+        }, []);
       }
       let pdfUrl = pdfDetails[0]?.URL;
       if (pdfRotateBase64) {
@@ -746,13 +717,15 @@ const TemplatePlaceholder = () => {
             pdfRotateBase64
           );
         } catch (e) {
-          console.log("error to convertBase64ToFile in placeholder flow", e);
+          console.log("error to convertBase64ToFile", e);
         }
       }
       try {
         const data = {
+          templateId: templateId,
           Placeholders: signerPos,
           Signers: signers,
+          URL: pdfUrl,
           Name: pdfDetails[0]?.Name || "",
           Note: pdfDetails[0]?.Note || "",
           Description: pdfDetails[0]?.Description || "",
@@ -762,17 +735,21 @@ const TemplatePlaceholder = () => {
           NextReminderDate: pdfDetails[0]?.NextReminderDate,
           IsEnableOTP: pdfDetails[0]?.IsEnableOTP === true ? true : false,
           IsTourEnabled: pdfDetails[0]?.IsTourEnabled === true ? true : false,
-          URL: pdfUrl,
           SignatureType: signatureType
         };
-        const updateTemplate = new Parse.Object("contracts_Template");
-        updateTemplate.id = templateId;
-        for (const key in data) {
-          updateTemplate.set(key, data[key]);
-        }
-        await updateTemplate.save();
+        const baseURL = localStorage.getItem("baseUrl");
+        const url = `${baseURL}functions/savetemplate`;
+        const headers = {
+          "Content-Type": "application/json",
+          "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+          jwttoken: jwttoken
+        };
+        await axios.post(url, data, { headers });
+        // console.log("savetemplate", res.data);
+        const isSignersLinked =
+          signerPos?.some((x) => !x.signerObjId) === false;
+        setIsAllRolelinked(isSignersLinked);
         setIsCreateDocModal(true);
-        setIsMailSend(true);
         setIsLoading({ isLoad: false });
       } catch (e) {
         setIsLoading(false);
@@ -783,10 +760,23 @@ const TemplatePlaceholder = () => {
       setIsReceipent(false);
     }
   };
-
-  const handleDontShow = (isChecked) => {
-    setIsDontShow(isChecked);
+  // `handleSaveTemplate` is used to save template based of validation
+  const handleSaveTemplate = async () => {
+    const isPublicTemplate = isPublic === "true";
+    if (isPublicTemplate) {
+      const unlinkSignerIndex = signerPos?.findIndex((x) => !x?.signerObjId);
+      const unlinkSigners = signerPos?.filter((x) => !x?.signerObjId)?.length; // unLink with role
+      if (unlinkSignerIndex === 0 && unlinkSigners === 1) {
+        await saveTemplate();
+      } else {
+        setIsPublicError(true);
+      }
+    } else {
+      await saveTemplate();
+    }
   };
+
+  const handleDontShow = (isChecked) => setIsDontShow(isChecked);
 
   //here you can add your messages in content and selector is key of particular steps
   const tourConfig = [
@@ -867,59 +857,29 @@ const TemplatePlaceholder = () => {
       } else {
         updatedTourStatus = [{ templateTour: true }];
       }
-      await axios
-        .put(
-          `${localStorage.getItem(
-            "baseUrl"
-          )}classes/contracts_Users/${signerUserId}`,
-          { TourStatus: updatedTourStatus },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
-              sessionToken: localStorage.getItem("accesstoken")
-            }
+      try {
+        const url = `${localStorage.getItem(
+          "baseUrl"
+        )}functions/updatetourstatus`;
+        const parseAppId = localStorage.getItem("parseAppId");
+        const accesstoken = localStorage.getItem("accesstoken");
+        const token = jwttoken
+          ? { jwttoken: jwttoken }
+          : { "X-Parse-Session-Token": accesstoken };
+        const data = { TourStatus: updatedTourStatus, ExtUserId: signerUserId };
+        await axios.post(url, data, {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Parse-Application-Id": parseAppId,
+            ...token
           }
-        )
-        .then(() => {
-          // const json = Listdata.data;
-          // const res = json.results;
-        })
-        .catch((err) => {
-          console.log("axois err ", err);
         });
+      } catch (err) {
+        console.log("axios err while update tourstatus", err);
+      }
     }
   };
 
-  // `handleCreateDocModal` is used to create Document from template when user click on yes from modal
-  const handleCreateDocModal = async () => {
-    setIsCreateDocModal(false);
-    setIsCreateDoc(true);
-    let pdfUrl = pdfDetails[0]?.URL;
-    if (pdfRotateBase64) {
-      try {
-        pdfUrl = await convertBase64ToFile(pdfDetails[0].Name, pdfRotateBase64);
-      } catch (e) {
-        console.log("error to convertBase64ToFile in placeholder flow", e);
-      }
-    }
-    // handle create document
-    const res = await createDocument(
-      pdfDetails,
-      signerPos,
-      signersdata,
-      pdfUrl
-    );
-    if (res.status === "success") {
-      navigate(`/placeHolderSign/${res.id}`, {
-        state: { title: "Use Template" }
-      });
-      setIsCreateDoc(false);
-    } else {
-      setHandleError(t("something-went-wrong-mssg"));
-      setIsCreateDoc(false);
-    }
-  };
   // `handleAddSigner` is used to open Add Role Modal
   const handleAddSigner = () => {
     setIsModalRole(true);
@@ -946,7 +906,6 @@ const TemplatePlaceholder = () => {
       Role: roleName || "User " + count,
       Id: Id
     };
-
     setSignerPos((prev) => [...prev, signerPosObj]);
     setIsModalRole(false);
     setRoleName("");
@@ -991,6 +950,7 @@ const TemplatePlaceholder = () => {
       className: "contracts_Contactbook",
       objectId: data.objectId
     };
+
     const updatePlaceHolder = signerPos.map((x) => {
       if (x.Id === uniqueId) {
         return { ...x, signerPtr: signerPtr, signerObjId: data.objectId };
@@ -1012,9 +972,7 @@ const TemplatePlaceholder = () => {
   };
 
   // `closePopup` is used to close Add/Choose signer modal
-  const closePopup = () => {
-    setIsAddUser({});
-  };
+  const closePopup = () => setIsAddUser({});
 
   //  `handleRoleChange` function is call when user update Role name from recipients list
   const handleRoleChange = (event, roleId) => {
@@ -1045,9 +1003,7 @@ const TemplatePlaceholder = () => {
     }
   };
 
-  const handleEditTemplateModal = () => {
-    setIsEditTemplate(!isEditTemplate);
-  };
+  const handleEditTemplateModal = () => setIsEditTemplate(!isEditTemplate);
 
   const handleEditTemplateForm = (data) => {
     setIsEditTemplate(false);
@@ -1342,13 +1298,158 @@ const TemplatePlaceholder = () => {
     );
     setPdfRotatese64(urlDetails.base64);
   };
+  // `handleQuickSendClose` is trigger when bulk send component trigger close event
+  const handleQuickSendClose = (status, count) => {
+    if (status === "success") {
+      setIsCreateDocModal(false);
+      if (count > 1) {
+        setIsAlert({
+          type: "success",
+          msg: count + " " + t("document-sent-alert")
+        });
+        setTimeout(() => setIsAlert({ type: "success", msg: "" }), 1500);
+      } else {
+        setIsAlert({
+          type: "success",
+          msg: count + " " + t("document-sent-alert")
+        });
+        setTimeout(() => setIsAlert({ type: "success", msg: "" }), 1500);
+      }
+    } else {
+      setIsAlert({
+        type: "danger",
+        message: t("something-went-wrong-mssg")
+      });
+      setTimeout(() => setIsAlert({ type: "success", msg: "" }), 1500);
+    }
+  };
+  const handleGeneratePublic = async () => {
+    const unlinkSignerIndex = signerPos?.findIndex((x) => !x?.signerObjId);
+    const unlinkSigners = signerPos?.filter((x) => !x?.signerObjId)?.length; // count of total unlink roles
+    if (unlinkSignerIndex === 0 && unlinkSigners === 1) {
+      try {
+        const role = signerPos[unlinkSignerIndex]?.Role;
+        const data = { templateId: templateId, IsPublic: true, Role: role };
+        const baseURL = localStorage.getItem("baseUrl");
+        const url = `${baseURL}functions/updatetopublictemplate`;
+        const headers = {
+          "Content-Type": "application/json",
+          "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+          jwttoken: jwttoken
+        };
+        await axios.post(url, data, { headers });
+        // console.log("updatetopublictemplate", res.data);
+        setIsPublic("true");
+      } catch (e) {
+        alert(t("something-went-wrong-mssg"));
+        console.log("error", e);
+      }
+    } else {
+      setIsPublicError(true);
+    }
+  };
+  const copytoclipboard = (publicUrl) => {
+    copytoData(publicUrl);
+    setIsAlert({ type: "success", msg: t("copied") });
+    setTimeout(() => setIsAlert({ type: "success", msg: "" }), 1500); // Reset copied state after 1.5 seconds
+  };
+
+  // `handleSendDocument` is trigger when users are linked to all role
+  const handleSendDocument = async () => {
+    setIsLoading({ isLoad: true, message: t("loading-mssg") });
+    const signers = signersdata?.filter((x) => x.objectId) || [];
+    let pdfUrl = pdfDetails[0]?.URL;
+    if (pdfRotateBase64) {
+      try {
+        pdfUrl = await convertBase64ToFile(pdfDetails[0].Name, pdfRotateBase64);
+      } catch (e) {
+        console.log("error to convertBase64ToFile", e);
+      }
+    }
+    let template = pdfDetails[0];
+    template.URL = pdfUrl;
+    template.Signers = signers;
+    template.Placeholders = signerPos;
+    template.SignatureType = signatureType;
+    const Documents = [template];
+    const token = jwttoken
+      ? { jwttoken: jwttoken }
+      : { "X-Parse-Session-Token": localStorage.getItem("accesstoken") };
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Parse-Application-Id": localStorage.getItem("parseAppId"),
+      ...token
+    };
+    const functionsUrl = `${localStorage.getItem(
+      "baseUrl"
+    )}functions/batchdocuments`;
+    const params = { Documents: JSON.stringify(Documents) };
+    try {
+      const res = await axios.post(functionsUrl, params, { headers: headers });
+      if (res.data && res.data.result === "success") {
+        setIsAlert({
+          type: "success",
+          msg: Documents?.length + " " + t("document-sent-alert")
+        });
+      }
+    } catch (err) {
+      console.log("err in send document ", err);
+      setIsAlert({ type: "danger", msg: t("something-went-wrong-mssg") });
+    } finally {
+      setIsLoading({ isLoad: false });
+      setIsCreateDocModal(false);
+      setTimeout(() => setIsAlert({ type: "success", msg: "" }), 1500);
+    }
+  };
+  //function show signer list and share link to share signUrl
+  const handlePublicShare = () => {
+    let publicUrl;
+    if (isStaging) {
+      publicUrl = `https://staging.opensign.me/publicsign?templateid=${templateId}`;
+    } else {
+      publicUrl = `https://opensign.me/publicsign?templateid=${templateId}`;
+    }
+    return (
+      <div className="flex flex-row justify-between items-center mb-1 mx-1">
+        <span className="w-[220px] md:w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
+          {publicUrl}
+        </span>
+        <div className="flex flex-row items-center gap-3 ">
+          <button
+            onClick={() => copytoclipboard(publicUrl)}
+            type="button"
+            className="flex flex-row items-center op-link op-link-primary"
+          >
+            <i className="fa-light fa-copy" />
+            <span className="hidden md:block ml-1 ">{t("copy-link")}</span>
+          </button>
+          <RWebShare data={{ url: publicUrl, title: t("sign-url") }}>
+            <i className="fa-light fa-share-from-square op-link op-link-secondary no-underline"></i>
+          </RWebShare>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
       <Title title={"Template"} />
+      {isAlert.msg && <Alert type={isAlert.type}>{isAlert.msg}</Alert>}
       <DndProvider backend={HTML5Backend}>
         {isLoading.isLoad ? (
           <LoaderWithMsg isLoading={isLoading} />
+        ) : isSubscriptionExpired ? (
+          <ModalUi
+            title={t("subscription-expired")}
+            isOpen={isSubscriptionExpired}
+            showClose={false}
+          >
+            <div className="flex flex-col justify-center items-center py-4 md:py-5 gap-5">
+              <p className="text-sm md:text-lg font-normal">
+                {t("owner-subscription-expired")}
+              </p>
+            </div>
+          </ModalUi>
         ) : handleError ? (
           <HandleError handleError={handleError} />
         ) : (
@@ -1414,39 +1515,98 @@ const TemplatePlaceholder = () => {
                       <p>{t("template-role-alert")}</p>
                     </div>
                   </ModalUi>
-                  {/* this modal is used show send mail  message and after send mail success message */}
-                  <ModalUi
-                    isOpen={isCreateDocModal}
-                    title={t("create-document")}
-                    handleClose={() => setIsCreateDocModal(false)}
-                  >
-                    <div className="h-full p-[20px]">
-                      <p>{t("template-created-alert")}</p>
-                      <div className="h-[1px] w-full my-[15px] bg-[#9f9f9f]"></div>
-                      {currentEmail.length > 0 && (
+                  {/* this modal is used show send mail message and after send mail success message */}
+                  {isCreateDocModal && (
+                    <ModalUi
+                      isOpen
+                      title={isAllRoleLinked ? "Send Document" : "Bulk send"}
+                      handleClose={() => setIsCreateDocModal(false)}
+                    >
+                      {isAllRoleLinked ? (
+                        <div className="px-[20px] pb-3">
+                          <div className="mb-3 mt-2 text-base">
+                            Are you sure want to send document?
+                          </div>
+                          <div className="flex flex-row gap-2">
+                            <button
+                              className="op-btn op-btn-primary w-[80px]"
+                              onClick={() => handleSendDocument()}
+                            >
+                              Yes
+                            </button>
+                            <button
+                              className="op-btn op-btn-secondary w-[80px]"
+                              onClick={() => setIsCreateDocModal(false)}
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <>
-                          <button
-                            onClick={() => handleCreateDocModal()}
-                            type="button"
-                            className="op-btn op-btn-primary"
-                          >
-                            {t("yes")}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsCreateDocModal(false);
-                              navigate("/report/6TeaPr321t");
-                            }}
-                            type="button"
-                            className="op-btn op-btn-secondary ml-2"
-                          >
-                            {t("no")}
-                          </button>
+                          <BulkSendUi
+                            signatureType={signatureType}
+                            Placeholders={signerPos}
+                            item={pdfDetails?.[0]}
+                            handleClose={handleQuickSendClose}
+                            jwttoken={jwttoken}
+                          />
+                          {isPublic !== "false" && (
+                            <div className="px-[20px] pb-3">
+                              <div className="flex justify-center items-center mt-3">
+                                <span className="h-[1px] w-[20%] bg-[#ccc]"></span>
+                                <span className="ml-[5px] mr-[5px]">
+                                  {t("or")}
+                                </span>
+                                <span className="h-[1px] w-[20%] bg-[#ccc]"></span>
+                              </div>
+                              <div className="my-3 ">
+                                <h3 className="text-base-content font-bold text-lg pb-[15px]">
+                                  Copy/share signing link
+                                </h3>
+
+                                {isPublic === "undefined" ? (
+                                  <button
+                                    className="op-btn op-btn-secondary w-full"
+                                    onClick={() => handleGeneratePublic()}
+                                  >
+                                    Generate Public Link
+                                  </button>
+                                ) : (
+                                  handlePublicShare()
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </>
                       )}
+                    </ModalUi>
+                  )}
+                  <ModalUi
+                    isOpen={isPublicErr}
+                    handleClose={() => setIsPublicError(false)}
+                  >
+                    <div className="m-4">
+                      <p>
+                        To make your template public, it must either contain a
+                        single role, or, if it includes multiple roles, all
+                        additional roles must already be assigned to signers.
+                        The unassigned public role should remain empty and must
+                        be placed in the first position.{" "}
+                      </p>
+                      <p>Visit below link to know more - </p>
+                      <p
+                        className="op-link op-link-primary"
+                        onClick={() =>
+                          copytoclipboard(
+                            "https://docs.opensignlabs.com/docs/help/Templates/publicTemplate"
+                          )
+                        }
+                      >
+                        https://docs.opensignlabs.com/docs/help/Templates/publicTemplate
+                      </p>
                     </div>
                   </ModalUi>
-                  {isCreateDoc && <LoaderWithMsg isLoading={isLoading} />}
                   <ModalUi
                     isOpen={isShowEmail}
                     title={t("signers-alert")}
@@ -1521,7 +1681,8 @@ const TemplatePlaceholder = () => {
                   />
                   {/* pdf header which contain funish back button */}
                   <Header
-                    completeBtnTitle={t("next")}
+                    completeBtnTitle={t("send")}
+                    disabledBackBtn={true}
                     isPlaceholder={true}
                     pageNumber={pageNumber}
                     allPages={allPages}
@@ -1697,6 +1858,7 @@ const TemplatePlaceholder = () => {
             uniqueId={uniqueId}
             closePopup={closePopup}
             signersData={signersdata}
+            jwttoken={jwttoken}
           />
         </div>
         <ModalUi
@@ -1707,6 +1869,7 @@ const TemplatePlaceholder = () => {
           <EditTemplate
             template={pdfDetails?.[0]}
             onSuccess={handleEditTemplateForm}
+            jwttoken={jwttoken}
           />
         </ModalUi>
         <WidgetNameModal
@@ -1734,4 +1897,4 @@ const TemplatePlaceholder = () => {
   );
 };
 
-export default TemplatePlaceholder;
+export default DraftTemplate;

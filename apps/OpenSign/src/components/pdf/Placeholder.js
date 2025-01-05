@@ -334,7 +334,6 @@ function Placeholder(props) {
       const checkIndex = props.xyPostion
         .filter((data) => data.Role !== "prefill")
         .findIndex((data) => data.Id === props.data.Id);
-
       props.setIsSelectId(checkIndex || 0);
     }
     //condition to handle in placeholder and template flow for text widget signerId for text widgets i have to set uniqueId in tempSignerId because
@@ -357,18 +356,13 @@ function Placeholder(props) {
 
     if (props.data && props?.pos?.type !== textWidget) {
       props.setUniqueId(props?.data?.Id);
-      const checkIndex = props.xyPostion.findIndex(
-        (data) => data.Id === props.data.Id
-      );
-
+      const checkIndex = props.xyPostion
+        .filter((data) => data.Role !== "prefill")
+        .findIndex((data) => data.Id === props.data.Id);
       props.setIsSelectId(checkIndex || 0);
     } else if (props.data && props.pos.type === textWidget) {
       props.setTempSignerId(props.uniqueId);
       props.setUniqueId(props?.data?.Id);
-      const checkIndex = props.xyPostion.findIndex(
-        (data) => data.Id === props.data.Id
-      );
-      props.setIsSelectId(checkIndex || 0);
     }
 
     //checking widget's type and open widget copy modal for required widgets
@@ -418,7 +412,7 @@ function Placeholder(props) {
       data?.format,
       null,
       null,
-      props.fontSize || props.pos?.options?.fontSize || "12",
+      props.fontSize || props.pos?.options?.fontSize || 12,
       props.fontColor || props.pos?.options?.fontColor || "black"
     );
     setSelectDate({ date: date, format: data?.format });
@@ -451,17 +445,13 @@ function Placeholder(props) {
                     handleOnClickSettingIcon();
                   }}
                   className="fa-light fa-gear icon"
-                  style={{
-                    color: "#188ae2",
-                    right: "29px",
-                    top: "-19px"
-                  }}
+                  style={{ color: "#188ae2", right: "29px", top: "-19px" }}
                 ></i>
               ) : (
                 /* condition to add setting icon for placeholder & template flow for all widgets except signature and date */
                 ((!props?.pos?.type && props.pos.isStamp) ||
                   (props?.pos?.type &&
-                    !["date", "signature"].includes(props.pos.type) &&
+                    !["date"].includes(props.pos.type) &&
                     !props.isSignYourself)) && (
                   <i
                     onClick={(e) => {
@@ -475,7 +465,7 @@ function Placeholder(props) {
                     className="fa-light fa-gear icon"
                     style={{
                       color: "#188ae2",
-                      right: props?.pos?.type === textWidget ? "32px" : "47px",
+                      right: props?.pos?.type === textWidget ? "32px" : "51px",
                       top: "-19px"
                     }}
                   ></i>
@@ -657,7 +647,7 @@ function Placeholder(props) {
     const fontSize = (size || 12) * containerScale * props.scale;
     //isMinHeight to set text box minimum height
     if (isMinHeight) {
-      return fontSize * 1.5 + "px";
+      return fontSize * 1.2 + "px";
     } else {
       return fontSize + "px";
     }
@@ -844,7 +834,7 @@ function Placeholder(props) {
         )}
         {isTabAndMobile ? (
           <div
-            className="flex items-stretch"
+            className="flex items-stretch justify-center"
             style={{
               left: xPos(props.pos, props.isSignYourself),
               top: yPos(props.pos, props.isSignYourself),
@@ -954,8 +944,8 @@ function Placeholder(props) {
             <span>{t("font-size")} :</span>
             <select
               className="ml-[3px] md:ml:[7px] op-select op-select-bordered op-select-sm focus:outline-none hover:border-base-content text-xs"
-              value={props.fontSize || clickonWidget.options?.fontSize || "12"}
-              onChange={(e) => props.setFontSize(e.target.value)}
+              value={props.fontSize || clickonWidget.options?.fontSize || 12}
+              onChange={(e) => props.setFontSize(parseInt(e.target.value))}
             >
               {fontsizeArr.map((size, ind) => {
                 return (

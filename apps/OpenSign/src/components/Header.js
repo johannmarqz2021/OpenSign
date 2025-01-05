@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import ModalUi from "../primitives/ModalUi";
 import QuotaCard from "../primitives/QuotaCard";
 
-const Header = ({ showSidebar }) => {
+const Header = ({ showSidebar, setIsMenu }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { width } = useWindowSize();
@@ -40,7 +40,7 @@ const Header = ({ showSidebar }) => {
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
     if (width <= 768) {
-      showSidebar();
+      setIsMenu(false);
     }
   };
   useEffect(() => {
@@ -140,6 +140,13 @@ const Header = ({ showSidebar }) => {
     );
     setShowNotification(false);
   };
+  const handleSetupNowNavigation = () => {
+    const url = isStaging
+      ? "https://staging-console.opensignlabs.com/fileadapter"
+      : "https://console.opensignlabs.com/fileadapter";
+
+    openInNewTab(url);
+  };
   return (
     <div>
       {/* {isEnableSubscription && showNotification && (
@@ -148,7 +155,7 @@ const Header = ({ showSidebar }) => {
             {t("header-news")} —
             <span
               className="cursor-pointer font-medium underline text-blue-800"
-              onClick={() => navigate("/profile")}
+              onClick={() => handleSetupNowNavigation()}
             >
               {" " + t("header-news-btn") + "."}
             </span>

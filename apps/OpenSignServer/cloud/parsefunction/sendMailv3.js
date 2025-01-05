@@ -18,7 +18,7 @@ async function sendMailProvider(req, plan, monthchange) {
         port: process.env.SMTP_PORT || 465,
         secure: smtpsecure,
         auth: {
-          user: process.env.SMTP_USER_EMAIL,
+          user: process.env.SMTP_USERNAME ? process.env.SMTP_USERNAME : process.env.SMTP_USER_EMAIL,
           pass: process.env.SMTP_PASS,
         }
       });
@@ -33,8 +33,10 @@ async function sendMailProvider(req, plan, monthchange) {
       let Pdf = fs.createWriteStream('test.pdf');
       const writeToLocalDisk = () => {
         return new Promise((resolve, reject) => {
-          const isSecure = new URL(req.params.url)?.protocol === 'https:';
-          if (useLocal === 'false' && isSecure) {
+          const isSecure =
+            new URL(req.params.url)?.protocol === 'https:' &&
+            new URL(req.params.url)?.hostname !== 'localhost';
+          if (useLocal !== 'true' || isSecure) {
             https.get(req.params.url, async function (response) {
               response.pipe(Pdf);
               response.on('end', () => resolve('success'));
@@ -65,7 +67,7 @@ async function sendMailProvider(req, plan, monthchange) {
         const pdfName = req.params.pdfName && `${req.params.pdfName}.pdf`;
         const file = {
           filename: pdfName || 'exported.pdf',
-          content: smtpenable ? PdfBuffer : undefined, //fs.readFileSync('./exports/exported_file_1223.pdf'),
+          content: smtpenable ? PdfBuffer : undefined,
           data: smtpenable ? undefined : PdfBuffer,
         };
 
@@ -200,7 +202,9 @@ async function sendcustomsmtp(extRes, req) {
     let Pdf = fs.createWriteStream('test.pdf');
     const writeToLocalDisk = () => {
       return new Promise((resolve, reject) => {
-        const isSecure = new URL(req.params.url)?.protocol === 'https:';
+        const isSecure =
+          new URL(req.params.url)?.protocol === 'https:' &&
+          new URL(req.params.url)?.hostname !== 'localhost';
         if (useLocal !== 'true' || isSecure) {
           https.get(req.params.url, async function (response) {
             response.pipe(Pdf);

@@ -1,5 +1,5 @@
 {
-  "header-news": "Nueva funcionalidad: ¡Los perfiles públicos ahora están disponibles! Crea y comparte plantillas públicas fácilmente",
+  "header-news": "Nueva característica: los usuarios del plan Teams ahora pueden integrar sus propios depósitos de AWS S3 para el almacenamiento de archivos",
   "header-news-btn": "Configurar ahora",
   "create-account": "Crear cuenta",
   "login": "Iniciar sesión",
@@ -94,6 +94,7 @@
       "My Signature": "Mi firma",
       "API Token": "Token API",
       "Webhook": "Webhook",
+      "Preferences": "Preferencias",
       "Teams": "Equipos",
       "Team-update-successfully": "Equipo actualizado correctamente.",
       "Users": "Usuarios"
@@ -291,7 +292,7 @@
   "subject": "Asunto",
   "body": "Cuerpo",
   "add-contact": "Agregar contacto",
-  "add-signer-alert": "¡El contacto ya existe!",
+  "add-signer-alert": "¡El contacto ya existe! Selecciónelo en el menú desplegable 'Firmantes'",
   "record-delete-alert": "¡Entrada eliminada exitosamente!",
   "record-revoke-alert": "¡Entrada revocada exitosamente!",
   "mail-sent-alert": "Correo enviado exitosamente.",
@@ -445,7 +446,8 @@
   "cutomize-email": "Personalizar correo",
   "upgrade-to-customize-email": "Mejora para personalizar el correo",
   "sign-url": "URL de firma",
-  "Mails Sent": "Correos enviados",
+  "mails-sent": "Correos enviados",
+  "mail-not-delivered": "correo no entregado",
   "document-alert": "Alerta de documento",
   "owner-subscription-expired": "La suscripción del propietario ha expirado.",
   "subscription-expired": "Suscripción expirada",
@@ -676,11 +678,24 @@
   "add-user-template": "Es necesario agregar un rol antes de poder agregarle campos.",
   "pdf-uncompatible": "Este pdf no es compatible con opensign, comuníquese con <soporte@diogma.com>",
   "enable-tour": "Habilitar recorrido",
-  "istourenabled-help":{
+  "istourenabled-help": {
     "p1": "Esto permitirá realizar una visita guiada para los firmantes, brindando instrucciones durante el proceso de firma.",
     "p2": "Esto desactivará la visita guiada, lo que garantizará una experiencia de firma más rápida e ininterrumpida.",
     "p3": "Consejo: si sus firmantes están familiarizados con Diogma y lo utilizan con frecuencia, es posible que desee desactivar la visita guiada para disfrutar de una experiencia más fluida. Elija la opción que mejor se adapte a sus necesidades de firma de documentos"
   },
   "form-title-1": "Configuración del flujo de documentos",
-  "form-title-2": "Configuración de seguridad"
+  "form-title-2": "Configuración de seguridad",
+  "text-field-tour": "Los campos de tipo 'Texto' deben completarse con anticipación antes de enviar el documento. Si necesita que los firmantes proporcionen información, utilice el campo 'Entrada de texto'",
+  "attach-signer-tour": "Debe adjuntar un firmante a cada función. Puede hacerlo haciendo clic en este icono. Una vez que seleccione un Firmante, se adjuntará a todos los campos asociados con ese rol que aparecen en el mismo color.",
+  "allowed-signature-types": "Tipos de firma permitidos",
+  "at-least-one-signature-type": "Se debe habilitar al menos un tipo de firma.",
+  "expect-default-one-signature-type": "Habilite un tipo de firma adicional aparte del predeterminado.",
+  "add-signer-note": "Nota - Este contacto se agregará a su lista de contactos",
+  "allowed-signature-types-help": {
+    "p1": "Esta preferencia de firma controla qué opciones de firma están disponibles para sus firmantes. Solo los tipos de firma que seleccione aparecerán en el widget de firma cuando se firme un documento. Por ejemplo, si elige sólo la opción 'Draw' en las preferencias, su firmante verá sólo la opción 'Draw' en el widget de firma, mientras que las otras tres opciones no estarán disponibles.",
+    "l1": "Cree una firma manuscrita directamente en la pantalla usando su dedo o un lápiz.",
+    "l2": "Ingrese su nombre y elija entre varios estilos de fuente para crear una firma.",
+    "l3": "Cargue una versión digital existente de su firma.",
+    "l4": "Utilice un estilo de firma preestablecido guardado en 'Mi firma' en su configuración."
+  }
 }

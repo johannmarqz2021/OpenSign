@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { isEnableSubscription, isStaging, themeColor } from "../constant/const";
+import {
+  emailRegex,
+  isEnableSubscription,
+  isStaging,
+  themeColor
+} from "../constant/const";
 import { PDFDocument } from "pdf-lib";
 import "../styles/signature.css";
 import Parse from "parse";
@@ -34,7 +39,10 @@ import {
   onClickZoomIn,
   onClickZoomOut,
   fetchUrl,
-  handleDownloadPdf
+  handleDownloadPdf,
+  signatureTypes,
+  handleSignatureType,
+  getTenantDetails
 } from "../constant/Utils";
 import Header from "../components/pdf/PdfHeader";
 import RenderPdf from "../components/pdf/RenderPdf";
@@ -133,12 +141,11 @@ function PdfRequestFiles(props) {
   const [publicRes, setPublicRes] = useState({});
   const [documentId, setDocumentId] = useState("");
   const [isPublicContact, setIsPublicContact] = useState(false);
-  const [pdfArrayBuffer, setPdfArrayBuffer] = useState("");
   const [plancode, setPlanCode] = useState("");
   const isHeader = useSelector((state) => state.showHeader);
   const divRef = useRef(null);
   const [isDownloadModal, setIsDownloadModal] = useState(false);
-
+  const [signatureType, setSignatureType] = useState([]);
   const isMobile = window.innerWidth < 767;
 
   let isGuestSignFlow = false;
@@ -305,17 +312,13 @@ function PdfRequestFiles(props) {
         : [];
       if (documentData && documentData[0]?.error) {
         props?.setTemplateStatus &&
-          props?.setTemplateStatus({
-            status: "Invalid"
-          });
+          props?.setTemplateStatus({ status: "Invalid" });
         throw new Error("error: Invalid TemplateId");
       } else if (documentData && documentData.length > 0) {
         if (documentData[0]?.IsPublic) {
           //handle condition when someone use plan js then setTemplateStatus is not supporting
           props?.setTemplateStatus &&
-            props?.setTemplateStatus({
-              status: "Success"
-            });
+            props?.setTemplateStatus({ status: "Success" });
           const url =
             documentData[0] &&
             (documentData[0]?.SignedUrl || documentData[0]?.URL);
@@ -324,8 +327,6 @@ function PdfRequestFiles(props) {
             const arrayBuffer = await convertPdfArrayBuffer(url);
             if (arrayBuffer === "Error") {
               setHandleError(t("something-went-wrong-mssg"));
-            } else {
-              setPdfArrayBuffer(arrayBuffer);
             }
           } else {
             setHandleError(t("something-went-wrong-mssg"));
@@ -355,24 +356,18 @@ function PdfRequestFiles(props) {
           }
           setUnSignedSigners(placeholdersOrSigners);
           setPdfDetails(documentData);
-          setIsLoading({
-            isLoad: false
-          });
+          setIsLoading({ isLoad: false });
         } else {
           props?.setTemplateStatus &&
-            props?.setTemplateStatus({
-              status: "Private"
-            });
-          setIsLoading(false);
+            props?.setTemplateStatus({ status: "Private" });
+          setIsLoading({ isLoad: false });
           setHandleError(t("something-went-wrong-mssg"));
           console.error("error:  TemplateId is not public");
           return;
         }
       } else {
         props?.setTemplateStatus &&
-          props?.setTemplateStatus({
-            status: "Invalid"
-          });
+          props?.setTemplateStatus({ status: "Invalid" });
         setIsLoading(false);
         setHandleError(t("something-went-wrong-mssg"));
         console.error("error: Invalid TemplateId");
@@ -389,6 +384,33 @@ function PdfRequestFiles(props) {
       return;
     }
   };
+  const fetchTenantDetails = async (contactId) => {
+    const user = JSON.parse(
+      localStorage.getItem(
+        `Parse/${localStorage.getItem("parseAppId")}/currentUser`
+      )
+    );
+    try {
+      const tenantDetails = await getTenantDetails(
+        user?.objectId, // userId
+        "", // jwttoken
+        contactId // contactId
+      );
+      if (tenantDetails && tenantDetails === "user does not exist!") {
+        alert(t("user-not-exist"));
+      } else if (tenantDetails) {
+        const signatureType = tenantDetails?.SignatureType || [];
+        const filterSignTypes = signatureType?.filter(
+          (x) => x.enabled === true
+        );
+
+        return filterSignTypes;
+      }
+    } catch (e) {
+      alert(t("user-not-exist"));
+    }
+  };
+
   //function for get document details for perticular signer with signer'object id
   const getDocumentDetails = async (docId, isNextUser) => {
     try {
@@ -396,11 +418,27 @@ function PdfRequestFiles(props) {
         `Parse/${localStorage.getItem("parseAppId")}/currentUser`
       );
       const jsonSender = JSON.parse(senderUser);
+      const contactId = jsonSender?.objectId
+        ? ""
+        : contactBookId || signerObjectId || "";
+      const tenantSignTypes = await fetchTenantDetails(contactId);
       // `currUserId` will be contactId or extUserId
       let currUserId;
       //getting document details
       const documentData = await contractDocument(docId);
       if (documentData && documentData.length > 0) {
+        const userSignatureType =
+          documentData[0]?.ExtUserPtr?.SignatureType || signatureTypes;
+        const docSignTypes =
+          documentData?.[0]?.SignatureType || userSignatureType;
+        const updatedSignatureType = await handleSignatureType(
+          tenantSignTypes,
+          docSignTypes
+        );
+        setSignatureType(updatedSignatureType);
+        const updatedPdfDetails = [...documentData];
+        updatedPdfDetails[0].SignatureType = updatedSignatureType;
+        setPdfDetails(updatedPdfDetails);
         const url =
           documentData[0] &&
           (documentData[0]?.SignedUrl || documentData[0]?.URL);
@@ -409,8 +447,6 @@ function PdfRequestFiles(props) {
           const arrayBuffer = await convertPdfArrayBuffer(url);
           if (arrayBuffer === "Error") {
             setHandleError(t("something-went-wrong-mssg"));
-          } else {
-            setPdfArrayBuffer(arrayBuffer);
           }
         } else {
           setHandleError(t("something-went-wrong-mssg"));
@@ -432,7 +468,7 @@ function PdfRequestFiles(props) {
 
         currUserId = getCurrentSigner?.objectId
           ? getCurrentSigner.objectId
-          : contactBookId || signerObjectId || "";
+          : contactBookId || signerObjectId || ""; //signerObjectId is contactBookId refer from public template flow
         if (isEnableSubscription) {
           await checkIsSubscribed(
             documentData[0]?.ExtUserPtr?.objectId,
@@ -892,9 +928,29 @@ function PdfRequestFiles(props) {
             setIsUiLoading(true);
             // `widgets` is Used to return widgets details with page number of current user
             const widgets = checkUser?.[0]?.placeHolder;
-
+            let pdfArrBuffer;
+            //`contractDocument` function used to get updated SignedUrl
+            // to resolve issue of widgets get remove automatically when more than 1 signers try to sign doc at a time
+            const documentData = await contractDocument(documentId);
+            if (documentData && documentData.length > 0) {
+              const url = documentData[0]?.SignedUrl || documentData[0]?.URL;
+              //convert document url in array buffer format to use embed widgets in pdf using pdf-lib
+              const arrayBuffer = await convertPdfArrayBuffer(url);
+              if (arrayBuffer === "Error") {
+                setHandleError("Error: invalid document!");
+              } else {
+                pdfArrBuffer = arrayBuffer;
+              }
+            } else if (
+              documentData === "Error: Something went wrong!" ||
+              (documentData.result && documentData.result.error)
+            ) {
+              setHandleError("Error: Something went wrong!");
+            } else {
+              setHandleError("Document not Found!");
+            }
             // Load a PDFDocument from the existing PDF bytes
-            const existingPdfBytes = pdfArrayBuffer;
+            const existingPdfBytes = pdfArrBuffer;
             try {
               const pdfDoc = await PDFDocument.load(existingPdfBytes);
               const isSignYourSelfFlow = false;
@@ -911,9 +967,7 @@ function PdfRequestFiles(props) {
                 widgets,
                 pdfDoc,
                 isSignYourSelfFlow,
-                scale,
-                pdfOriginalWH,
-                containerWH
+                scale
               );
               // console.log("pdfte", pdfBytes);
               //get ExistUserPtr object id of user class to get tenantDetails
@@ -955,11 +1009,7 @@ function PdfRequestFiles(props) {
                       const newDate = new Date(expireDate);
                       const localExpireDate = newDate.toLocaleDateString(
                         "en-US",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric"
-                        }
+                        { day: "numeric", month: "long", year: "numeric" }
                       );
                       let senderEmail = pdfDetails?.[0].ExtUserPtr.Email;
                       let senderPhone = pdfDetails?.[0]?.ExtUserPtr?.Phone;
@@ -1072,12 +1122,16 @@ function PdfRequestFiles(props) {
                   }
                 } else {
                   setIsUiLoading(false);
-                  setIsAlert({ isShow: true, alertMessage: resSign.message });
+                  setIsAlert({
+                    title: "Error",
+                    isShow: true,
+                    alertMessage: resSign.message
+                  });
                 }
               } else {
                 setIsUiLoading(false);
                 setIsAlert({
-                  header: t("error"),
+                  title: "Error",
                   isShow: true,
                   alertMessage: t("pdf-uncompatible")
                 });
@@ -1363,9 +1417,7 @@ function PdfRequestFiles(props) {
         try {
           await axios.post(
             `${localStorage.getItem("baseUrl")}functions/updatecontacttour`,
-            {
-              contactId: signerObjectId
-            },
+            { contactId: signerObjectId },
             {
               headers: {
                 "Content-Type": "application/json",
@@ -1506,65 +1558,69 @@ function PdfRequestFiles(props) {
   //`handlePublicUser` function to use create user from public role and create document from public template
   const handlePublicUser = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const params = {
-        ...contact,
-        templateid: pdfDetails[0]?.objectId,
-        role: pdfDetails[0]?.PublicRole[0]
-      };
-      const userRes = await axios.post(
-        `${localStorage.getItem(
-          "baseUrl"
-        )}/functions/publicuserlinkcontacttodoc`,
-        params,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-Parse-Application-Id": localStorage.getItem("parseAppId")
+    if (!emailRegex.test(contact.email)) {
+      alert("Please enter a valid email address.");
+    } else {
+      setLoading(true);
+      try {
+        const params = {
+          ...contact,
+          templateid: pdfDetails[0]?.objectId,
+          role: pdfDetails[0]?.PublicRole[0]
+        };
+        const userRes = await axios.post(
+          `${localStorage.getItem(
+            "baseUrl"
+          )}/functions/publicuserlinkcontacttodoc`,
+          params,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Parse-Application-Id": localStorage.getItem("parseAppId")
+            }
           }
-        }
-      );
+        );
 
-      if (userRes?.data?.result) {
-        setPublicRes(userRes.data.result);
-        const isEnableOTP = pdfDetails?.[0]?.IsEnableOTP || false;
-        if (isEnableOTP) {
-          await SendOtp();
+        if (userRes?.data?.result) {
+          setPublicRes(userRes.data.result);
+          const isEnableOTP = pdfDetails?.[0]?.IsEnableOTP || false;
+          if (isEnableOTP) {
+            await SendOtp();
+          } else {
+            setIsPublicContact(false);
+            setIsPublicTemplate(false);
+            setDocumentId(userRes.data?.result?.docId);
+            const contactId = userRes.data.result?.contactId;
+            setSignerObjectId(contactId);
+          }
         } else {
-          setIsPublicContact(false);
-          setIsPublicTemplate(false);
-          setDocumentId(userRes.data?.result?.docId);
-          const contactId = userRes.data.result?.contactId;
-          setSignerObjectId(contactId);
+          console.log("error in public-sign to create user details");
+          setIsAlert({
+            title: "Error",
+            isShow: true,
+            alertMessage: t("something-went-wrong-mssg")
+          });
         }
-      } else {
-        console.log("error in public-sign to create user details");
-        setIsAlert({
-          title: "Error",
-          isShow: true,
-          alertMessage: t("something-went-wrong-mssg")
-        });
-      }
-    } catch (e) {
-      console.log("e", e);
-      if (
-        e?.response?.data?.error === "Insufficient Credit" ||
-        e?.response?.data?.error === "Plan expired"
-      ) {
-        handleCloseOtp();
-        setIsAlert({
-          title: t("insufficient-credits"),
-          isShow: true,
-          alertMessage: t("insufficient-credits-mssg")
-        });
-      } else {
-        handleCloseOtp();
-        setIsAlert({
-          title: "Error",
-          isShow: true,
-          alertMessage: t("something-went-wrong-mssg")
-        });
+      } catch (e) {
+        console.log("e", e);
+        if (
+          e?.response?.data?.error === "Insufficient Credit" ||
+          e?.response?.data?.error === "Plan expired"
+        ) {
+          handleCloseOtp();
+          setIsAlert({
+            title: t("insufficient-credits"),
+            isShow: true,
+            alertMessage: t("insufficient-credits-mssg")
+          });
+        } else {
+          handleCloseOtp();
+          setIsAlert({
+            title: "Error",
+            isShow: true,
+            alertMessage: t("something-went-wrong-mssg")
+          });
+        }
       }
     }
   };
@@ -1947,7 +2003,7 @@ function PdfRequestFiles(props) {
                             })
                           }
                           type="button"
-                          className="op-btn op-btn-secondary"
+                          className="op-btn op-btn-secondary ml-1"
                         >
                           {t("close")}
                         </button>
@@ -2087,27 +2143,30 @@ function PdfRequestFiles(props) {
                       </div>
                     </ModalUi>
                     {/* this component is used for signature pad modal */}
-                    <SignPad
-                      isSignPad={isSignPad}
-                      isStamp={isStamp}
-                      setIsImageSelect={setIsImageSelect}
-                      setIsSignPad={setIsSignPad}
-                      setImage={setImage}
-                      isImageSelect={isImageSelect}
-                      imageRef={imageRef}
-                      onImageChange={onImageChange}
-                      setSignature={setSignature}
-                      image={image}
-                      onSaveImage={saveImage}
-                      onSaveSign={saveSign}
-                      defaultSign={defaultSignImg}
-                      myInitial={myInitial}
-                      isInitial={isInitial}
-                      setIsInitial={setIsInitial}
-                      setIsStamp={setIsStamp}
-                      currWidgetsDetails={currWidgetsDetails}
-                      setCurrWidgetsDetails={setCurrWidgetsDetails}
-                    />
+                    {documentId && (
+                      <SignPad
+                        signatureTypes={signatureType}
+                        isSignPad={isSignPad}
+                        isStamp={isStamp}
+                        setIsImageSelect={setIsImageSelect}
+                        setIsSignPad={setIsSignPad}
+                        setImage={setImage}
+                        isImageSelect={isImageSelect}
+                        imageRef={imageRef}
+                        onImageChange={onImageChange}
+                        setSignature={setSignature}
+                        image={image}
+                        onSaveImage={saveImage}
+                        onSaveSign={saveSign}
+                        defaultSign={defaultSignImg}
+                        myInitial={myInitial}
+                        isInitial={isInitial}
+                        setIsInitial={setIsInitial}
+                        setIsStamp={setIsStamp}
+                        currWidgetsDetails={currWidgetsDetails}
+                        setCurrWidgetsDetails={setCurrWidgetsDetails}
+                      />
+                    )}
                     {/* pdf header which contain funish back button */}
                     <Header
                       isPdfRequestFiles={isPublicTemplate ? false : true}
@@ -2236,6 +2295,10 @@ function PdfRequestFiles(props) {
                         setIsLoading={setIsLoading}
                         xyPostion={signerPos}
                         setDefaultSignAlert={setDefaultSignAlert}
+                        isDefault={
+                          signatureType?.find((x) => x.name === "default")
+                            ?.enabled || false
+                        }
                       />
                     )}
                   </div>

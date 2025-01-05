@@ -102,8 +102,16 @@ async function sendCompletedMail(obj) {
   const sender = obj.doc.ExtUserPtr;
   const pdfName = doc.Name;
   const mailLogo = 'https://i.ibb.co/Tc1Lnq9/logo.png';
-  const recipient =
-    doc?.Signers?.length > 0 ? doc?.Signers?.map(x => x?.Email)?.join(',') : sender.Email;
+  let signersMail;
+  if (doc?.Signers?.length > 0) {
+    const isOwnerExistsinSigners = doc?.Signers?.find(x => x.Email === sender.Email);
+    signersMail = isOwnerExistsinSigners
+      ? doc?.Signers?.map(x => x?.Email)?.join(',')
+      : [...doc?.Signers?.map(x => x?.Email), sender.Email]?.join(',');
+  } else {
+    signersMail = sender.Email;
+  }
+  const recipient = signersMail;
     let subject = `El documento "${pdfName}" ha sido firmado por todas las partes`;
     let body =
       "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /></head><body>  <div style='background-color:#f5f5f5;padding:20px'>    <div style='box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;background-color:white;'> <div><img src=" +
@@ -245,7 +253,11 @@ async function sendDoctoWebhook(doc, Url, event, signUser, certificateUrl) {
 async function sendMailsaveCertifcate(doc, P12Buffer, isCustomMail, mailProvider, adapterConfig) {
   const certificate = await GenerateCertificate(doc);
   const certificatePdf = await PDFDocument.load(certificate);
-  const p12 = new P12Signer(P12Buffer, { passphrase: process.env.PASS_PHRASE || null });
+  let passphrase = process.env.PASS_PHRASE;
+  if (doc?.ExtUserPtr?.TenantId?.PfxFile?.password) {
+    passphrase = doc?.ExtUserPtr?.TenantId?.PfxFile?.password;
+  }
+  const p12 = new P12Signer(P12Buffer, { passphrase: passphrase || null });
   //  `pdflibAddPlaceholder` is used to add code of only digitial sign in certificate
   pdflibAddPlaceholder({
     pdfDoc: certificatePdf,
@@ -341,10 +353,15 @@ async function PDF(req) {
       //  `PdfBuffer` used to create buffer from pdf file
       let PdfBuffer = Buffer.from(req.params.pdfFile, 'base64');
       //  `P12Buffer` used to create buffer from p12 certificate
-      const pfxFile = process.env.PFX_BASE64;
+      let pfxFile = process.env.PFX_BASE64;
+      let passphrase = process.env.PASS_PHRASE;
+      if (_resDoc?.ExtUserPtr?.TenantId?.PfxFile?.base64) {
+        pfxFile = _resDoc?.ExtUserPtr?.TenantId?.PfxFile?.base64;
+        passphrase = _resDoc?.ExtUserPtr?.TenantId?.PfxFile?.password;
+      }
       // const P12Buffer = fs.readFileSync();
       const P12Buffer = Buffer.from(pfxFile, 'base64');
-      const p12Cert = new P12Signer(P12Buffer, { passphrase: process.env.PASS_PHRASE || null });
+      const p12Cert = new P12Signer(P12Buffer, { passphrase: passphrase || null });
       const UserPtr = { __type: 'Pointer', className: className, objectId: signUser.objectId };
       const obj = { UserPtr: UserPtr, SignedUrl: '', Activity: 'Signed', ipAddress: userIP, Signature: sign };
       let updateAuditTrail;
@@ -364,7 +381,9 @@ async function PDF(req) {
         isCompleted = true;
       }
       const randomNumber = Math.floor(Math.random() * 5000);
-      const name = `exported_file_${randomNumber}.pdf`;
+      // below regex is used to replace all word with "_" except A to Z, a to z, numbers
+      const docName = _resDoc?.Name?.replace(/[^a-zA-Z0-9._-]/g, '_')?.toLowerCase();
+      const name = `signed_${docName}_${randomNumber}.pdf`;
       const filePath = `./exports/${name}`;
       let pdfSize = PdfBuffer.length;
       if (isCompleted) {

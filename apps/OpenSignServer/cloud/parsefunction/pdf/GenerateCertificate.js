@@ -461,15 +461,15 @@ export default async function GenerateCertificate(docDetails) {
       currentPage.drawText('Visto el:', {
         x: half,
         y: yPosition2,
-        size: text,
+        size: timeText,
         font: timesRomanFont,
         color: textKeyColor,
       });
 
-      currentPage.drawText(`${x.ViewedOn}`, {
+      currentPage.drawText(`${new Date(x.ViewedOn).toUTCString()}`, {
         x: half + 71,
         y: yPosition2,
-        size: text,
+        size: timeText,
         font: timesRomanFont,
         color: textValueColor,
       });
@@ -493,7 +493,7 @@ export default async function GenerateCertificate(docDetails) {
       currentPage.drawText('Firmado el:', {
         x: half,
         y: yPosition3,
-        size: text,
+        size: timeText,
         font: timesRomanFont,
         color: textKeyColor,
       });
@@ -501,7 +501,7 @@ export default async function GenerateCertificate(docDetails) {
       currentPage.drawText(`${x.SignedOn}`, {
         x: half + 70,
         y: yPosition3,
-        size: text,
+        size: timeText,
         font: timesRomanFont,
         color: textValueColor,
       });
@@ -524,7 +524,7 @@ export default async function GenerateCertificate(docDetails) {
       currentPage.drawText('Nivel de seguridad:', {
         x: half,
         y: yPosition4,
-        size: text,
+        size: timeText,
         font: timesRomanFont,
         color: textKeyColor,
       });
@@ -532,7 +532,7 @@ export default async function GenerateCertificate(docDetails) {
       currentPage.drawText(`Email, OTP`, {
         x: half + 107,
         y: yPosition4,
-        size: text,
+        size: timeText,
         font: timesRomanFont,
         color: textValueColor,
       });
